@@ -1,0 +1,26 @@
+[
+  {
+    "color": "blue",
+    "name": "Forager Toasts",
+    "cook_time_ms": 3000,
+    "examples": ["Moonlit Mushroom Toast", "Pickled Clover Tart", "Garden Canape Trio"]
+  },
+  {
+    "color": "green",
+    "name": "Hearth Broth",
+    "cook_time_ms": 5000,
+    "examples": ["Root Cellar Chowder", "Marrow Herb Broth", "Rain-Barrel Miso"]
+  },
+  {
+    "color": "yellow",
+    "name": "Butcher's Roast",
+    "cook_time_ms": 7000,
+    "examples": ["Charred Skillet Cutlets", "Black Garlic Steak", "Honeyed Bone Roast"]
+  },
+  {
+    "color": "red",
+    "name": "Velvet Sweets",
+    "cook_time_ms": 4000,
+    "examples": ["Blood Orange Pudding", "Caramel Bone Custard", "Midnight Berry Tart"]
+  }
+]

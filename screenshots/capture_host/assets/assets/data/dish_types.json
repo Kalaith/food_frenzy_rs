@@ -1,0 +1,26 @@
+[
+  {
+    "color": "blue",
+    "name": "Appetizers",
+    "cook_time_ms": 3000,
+    "examples": ["Spring Rolls", "Cheese Bites", "Mini Salads"]
+  },
+  {
+    "color": "green",
+    "name": "Soups",
+    "cook_time_ms": 5000,
+    "examples": ["Vegetable Soup", "Bone Broth", "Mushroom Bisque"]
+  },
+  {
+    "color": "yellow",
+    "name": "Main Courses",
+    "cook_time_ms": 7000,
+    "examples": ["Grilled Steaks", "Roasted Chicken", "Pasta Dishes"]
+  },
+  {
+    "color": "red",
+    "name": "Desserts",
+    "cook_time_ms": 4000,
+    "examples": ["Chocolate Cake", "Ice Cream", "Fruit Tarts"]
+  }
+]

@@ -1,0 +1,128 @@
+[
+  {
+    "id": "cooking-speed",
+    "name": "Faster Cooking",
+    "description": "Reduce cooking time by 8% per level",
+    "base_cost": 80,
+    "cost": 80,
+    "level": 0,
+    "max_level": 8,
+    "cost_growth": 1.45,
+    "purchased": false,
+    "effects": {
+      "cook_time_multiplier": -0.08
+    }
+  },
+  {
+    "id": "customer-patience",
+    "name": "Patient Customers",
+    "description": "Customers wait 12% longer per level",
+    "base_cost": 90,
+    "cost": 90,
+    "level": 0,
+    "max_level": 8,
+    "cost_growth": 1.42,
+    "purchased": false,
+    "effects": {
+      "patience_multiplier": 0.12
+    }
+  },
+  {
+    "id": "processing-efficiency",
+    "name": "Better Processing",
+    "description": "Gain 12% more ingredients from VIP processing per level",
+    "base_cost": 120,
+    "cost": 120,
+    "level": 0,
+    "max_level": 8,
+    "cost_growth": 1.5,
+    "purchased": false,
+    "effects": {
+      "meat_yield_multiplier": 0.12
+    }
+  },
+  {
+    "id": "combo-boost",
+    "name": "Combo Master",
+    "description": "Increase combo scoring by 8% per level",
+    "base_cost": 140,
+    "cost": 140,
+    "level": 0,
+    "max_level": 10,
+    "cost_growth": 1.55,
+    "purchased": false,
+    "effects": {
+      "combo_multiplier": 0.08
+    }
+  },
+  {
+    "id": "dining-room",
+    "name": "Dining Room Expansion",
+    "description": "Add one customer table per level",
+    "base_cost": 180,
+    "cost": 180,
+    "level": 0,
+    "max_level": 4,
+    "cost_growth": 1.9,
+    "purchased": false,
+    "effects": {
+      "max_customers_bonus": 1
+    }
+  },
+  {
+    "id": "host-stand",
+    "name": "Host Stand",
+    "description": "Customers arrive 6% faster per level",
+    "base_cost": 110,
+    "cost": 110,
+    "level": 0,
+    "max_level": 6,
+    "cost_growth": 1.5,
+    "purchased": false,
+    "effects": {
+      "spawn_interval_multiplier": -0.06
+    }
+  },
+  {
+    "id": "service-training",
+    "name": "Service Training",
+    "description": "Slow satisfaction decay by 8% per level",
+    "base_cost": 130,
+    "cost": 130,
+    "level": 0,
+    "max_level": 8,
+    "cost_growth": 1.48,
+    "purchased": false,
+    "effects": {
+      "satisfaction_decay_multiplier": -0.08
+    }
+  },
+  {
+    "id": "recipe-marketing",
+    "name": "Recipe Marketing",
+    "description": "Recipes sell for 10% more per level",
+    "base_cost": 260,
+    "cost": 260,
+    "level": 0,
+    "max_level": 8,
+    "cost_growth": 1.7,
+    "purchased": false,
+    "effects": {
+      "recipe_value_multiplier": 0.04
+    }
+  },
+  {
+    "id": "portion-planning",
+    "name": "Portion Planning",
+    "description": "Recipes add 10% more future capacity per level",
+    "base_cost": 280,
+    "cost": 280,
+    "level": 0,
+    "max_level": 6,
+    "cost_growth": 1.75,
+    "purchased": false,
+    "effects": {
+      "capacity_gain_multiplier": 0.04
+    }
+  }
+]

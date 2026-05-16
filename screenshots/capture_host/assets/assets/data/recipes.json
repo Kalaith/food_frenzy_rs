@@ -1,0 +1,89 @@
+[
+  {
+    "id": "bacon-ramen",
+    "name": "Bacon Ramen",
+    "description": "A rich bowl that sells well and teaches the kitchen how to feed larger guests.",
+    "ingredients": {
+      "pig-meat": 5
+    },
+    "customer_type": "pig",
+    "unlocked": false,
+    "unlock_condition": "Process 5 Pig Girls",
+    "profit_multiplier": 1.6,
+    "base_value": 80,
+    "capacity_bonus": 2
+  },
+  {
+    "id": "golden-cutlets",
+    "name": "Golden Cutlets",
+    "description": "A high-volume special that improves prep for bigger appetites.",
+    "ingredients": {
+      "chicken-meat": 6
+    },
+    "customer_type": "chicken",
+    "unlocked": false,
+    "unlock_condition": "Process 3 Chicken Girls",
+    "profit_multiplier": 1.8,
+    "base_value": 95,
+    "capacity_bonus": 2
+  },
+  {
+    "id": "tidal-platter",
+    "name": "Tidal Platter",
+    "description": "A delicate course that rewards quick handling and expands portion planning.",
+    "ingredients": {
+      "fish-meat": 5
+    },
+    "customer_type": "fish",
+    "unlocked": false,
+    "unlock_condition": "Process 3 Fish Girls",
+    "profit_multiplier": 1.9,
+    "base_value": 105,
+    "capacity_bonus": 2
+  },
+  {
+    "id": "street-skewers",
+    "name": "Street Skewers",
+    "description": "A spicy seller that offsets losses from tricky guests.",
+    "ingredients": {
+      "fox-meat": 5
+    },
+    "customer_type": "fox",
+    "unlocked": false,
+    "unlock_condition": "Process 3 Fox Girls",
+    "profit_multiplier": 2.0,
+    "base_value": 115,
+    "capacity_bonus": 3
+  },
+  {
+    "id": "honey-roast-feast",
+    "name": "Honey Roast Feast",
+    "description": "A premium feast built around larger yields and larger future servings.",
+    "ingredients": {
+      "bear-meat": 5
+    },
+    "customer_type": "bear",
+    "unlocked": false,
+    "unlock_condition": "Process 2 Bear Girls",
+    "profit_multiplier": 2.3,
+    "base_value": 150,
+    "capacity_bonus": 4
+  },
+  {
+    "id": "rainbow-stew",
+    "name": "Rainbow Stew",
+    "description": "Legendary stew from multiple guest types.",
+    "ingredients": {
+      "pig-meat": 3,
+      "cow-meat": 3,
+      "sheep-meat": 3,
+      "rabbit-meat": 3,
+      "cat-meat": 3
+    },
+    "unlocked": false,
+    "unlock_condition": "Process one of each animal type in a chain",
+    "profit_multiplier": 3.0,
+    "base_value": 220,
+    "capacity_bonus": 6
+  }
+]

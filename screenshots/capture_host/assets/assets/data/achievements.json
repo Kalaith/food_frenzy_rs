@@ -1,0 +1,101 @@
+[
+  {
+    "id": "first-customer",
+    "name": "First Customer",
+    "description": "Process your first customer",
+    "unlocked": false,
+    "progress": 0,
+    "max_progress": 1,
+    "reward": 50
+  },
+  {
+    "id": "combo-master",
+    "name": "Combo Master",
+    "description": "Achieve a 10-customer combo chain",
+    "unlocked": false,
+    "progress": 0,
+    "max_progress": 10,
+    "reward": 200
+  },
+  {
+    "id": "steady-service",
+    "name": "Steady Service",
+    "description": "Serve 25 dishes",
+    "unlocked": false,
+    "progress": 0,
+    "max_progress": 25,
+    "reward": 150
+  },
+  {
+    "id": "favorite-service",
+    "name": "Favorite Service",
+    "description": "Serve 20 preferred dishes",
+    "unlocked": false,
+    "progress": 0,
+    "max_progress": 20,
+    "reward": 200
+  },
+  {
+    "id": "recipe-merchant",
+    "name": "Recipe Merchant",
+    "description": "Prepare and sell 5 recipes",
+    "unlocked": false,
+    "progress": 0,
+    "max_progress": 5,
+    "reward": 250
+  },
+  {
+    "id": "capacity-planner",
+    "name": "Capacity Planner",
+    "description": "Reach +40 future guest capacity",
+    "unlocked": false,
+    "progress": 0,
+    "max_progress": 40,
+    "reward": 300
+  },
+  {
+    "id": "broad-menu",
+    "name": "Broad Menu",
+    "description": "Process 8 different customer types",
+    "unlocked": false,
+    "progress": 0,
+    "max_progress": 8,
+    "reward": 300
+  },
+  {
+    "id": "busy-night",
+    "name": "Busy Night",
+    "description": "Earn 1,000 total score",
+    "unlocked": false,
+    "progress": 0,
+    "max_progress": 1000,
+    "reward": 150
+  },
+  {
+    "id": "restaurant-empire",
+    "name": "Restaurant Empire",
+    "description": "Earn 10,000 total score",
+    "unlocked": false,
+    "progress": 0,
+    "max_progress": 10000,
+    "reward": 500
+  },
+  {
+    "id": "overfed-specialist",
+    "name": "Overfed Specialist",
+    "description": "Overfeed 10 customers",
+    "unlocked": false,
+    "progress": 0,
+    "max_progress": 10,
+    "reward": 250
+  },
+  {
+    "id": "fresh-start",
+    "name": "Fresh Start",
+    "description": "Prestige once",
+    "unlocked": false,
+    "progress": 0,
+    "max_progress": 1,
+    "reward": 500
+  }
+]
