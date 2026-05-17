@@ -8,6 +8,9 @@ use crate::engine::{
 };
 use crate::state::{Customer, GameState, ProgressionState};
 use macroquad::prelude::*;
+use macroquad_toolkit::ui::{
+    draw_badge as toolkit_draw_badge, draw_text_centered_in_box, progress_bar,
+};
 use std::collections::HashMap;
 
 const BACKGROUND: Color = Color::new(0.055, 0.055, 0.065, 1.0);
@@ -102,15 +105,9 @@ fn customer_fallback_color(customer_type: &str) -> Color {
 }
 
 fn draw_panel(rect: Rect) {
-    draw_rectangle(rect.x, rect.y, rect.w, rect.h, PANEL);
-    draw_rectangle_lines(
-        rect.x,
-        rect.y,
-        rect.w,
-        rect.h,
-        1.0,
-        Color::new(0.20, 0.20, 0.22, 1.0),
-    );
+    let surface = macroquad_toolkit::ui::SurfaceStyle::new(PANEL)
+        .with_border(1.0, Color::new(0.20, 0.20, 0.22, 1.0));
+    macroquad_toolkit::ui::draw_surface(rect, &surface);
 }
 
 fn draw_section_title(text: &str, x: f32, y: f32) {
@@ -125,49 +122,30 @@ fn draw_button(rect: Rect, text: &str, active: bool, disabled: bool) {
     } else {
         Color::new(0.25, 0.25, 0.27, 1.0)
     };
-    draw_rectangle(rect.x, rect.y, rect.w, rect.h, color);
-    draw_rectangle_lines(
-        rect.x,
-        rect.y,
-        rect.w,
-        rect.h,
-        1.0,
-        if disabled { MUTED } else { TEXT },
-    );
+    let surface = macroquad_toolkit::ui::SurfaceStyle::new(color)
+        .with_border(1.0, if disabled { MUTED } else { TEXT });
+    macroquad_toolkit::ui::draw_surface(rect, &surface);
 
     let font_size = if text.len() > 13 { 14.0 } else { 16.0 };
-    let text_dim = measure_text(text, None, font_size as u16, 1.0);
-    draw_text(
+    draw_text_centered_in_box(
         text,
-        rect.x + (rect.w - text_dim.width) * 0.5,
-        rect.y + (rect.h + text_dim.offset_y) * 0.5,
+        rect.x + 6.0,
+        rect.y,
+        rect.w - 12.0,
+        rect.h,
         font_size,
         if disabled { MUTED } else { WHITE },
     );
 }
 
 fn draw_badge(rect: Rect, text: &str, color: Color) {
-    draw_rectangle(rect.x, rect.y, rect.w, rect.h, color);
-    draw_rectangle_lines(rect.x, rect.y, rect.w, rect.h, 1.0, WHITE);
-    let text_dim = measure_text(text, None, 13, 1.0);
-    draw_text(
-        text,
-        rect.x + (rect.w - text_dim.width) * 0.5,
-        rect.y + 15.0,
-        13.0,
-        WHITE,
-    );
+    toolkit_draw_badge(rect, text, color, WHITE);
 }
 
 fn draw_card(rect: Rect, title: &str) {
-    draw_rectangle(
-        rect.x,
-        rect.y,
-        rect.w,
-        rect.h,
-        Color::new(0.105, 0.105, 0.125, 1.0),
-    );
-    draw_rectangle_lines(rect.x, rect.y, rect.w, rect.h, 1.0, LINE);
+    let surface = macroquad_toolkit::ui::SurfaceStyle::new(Color::new(0.105, 0.105, 0.125, 1.0))
+        .with_border(1.0, LINE);
+    macroquad_toolkit::ui::draw_surface(rect, &surface);
     draw_text(title, rect.x + 12.0, rect.y + 25.0, 19.0, TEXT);
 }
 
@@ -179,29 +157,19 @@ fn draw_tooltip(text: &str, center_x: f32, y: f32) {
         text_dim.width + 20.0,
         24.0,
     );
-    draw_rectangle(
-        rect.x,
-        rect.y,
-        rect.w,
-        rect.h,
-        Color::new(0.02, 0.02, 0.025, 0.86),
-    );
-    draw_rectangle_lines(rect.x, rect.y, rect.w, rect.h, 1.0, SKYBLUE);
+    let surface = macroquad_toolkit::ui::SurfaceStyle::new(Color::new(0.02, 0.02, 0.025, 0.86))
+        .with_border(1.0, SKYBLUE);
+    macroquad_toolkit::ui::draw_surface(rect, &surface);
     draw_text(text, rect.x + 10.0, rect.y + 17.0, 14.0, TEXT);
 }
 
 fn draw_bar(x: f32, y: f32, width: f32, height: f32, value: f32, max_value: f32, color: Color) {
-    let ratio = if max_value <= 0.0 {
-        0.0
-    } else {
-        (value / max_value).clamp(0.0, 1.0)
-    };
-    draw_rectangle(x, y, width, height, Color::new(0.05, 0.05, 0.055, 1.0));
-    draw_rectangle(x, y, width * ratio, height, color);
+    progress_bar(x, y, width, height, value, max_value, color);
 }
 
 fn draw_stat(label: &str, value: &str, x: f32, y: f32, w: f32) {
-    draw_rectangle(x, y, w, 44.0, Color::new(0.10, 0.10, 0.12, 1.0));
+    let surface = macroquad_toolkit::ui::SurfaceStyle::new(Color::new(0.10, 0.10, 0.12, 1.0));
+    macroquad_toolkit::ui::draw_surface(Rect::new(x, y, w, 44.0), &surface);
     draw_text(label, x + 12.0, y + 17.0, 13.0, MUTED);
     draw_text(value, x + 12.0, y + 36.0, 18.0, TEXT);
 }

@@ -8,11 +8,9 @@ use std::path::PathBuf;
 const SAVE_VERSION: u32 = 1;
 const SAVE_KEY: &str = "feast-frenzy-save.json";
 #[cfg(not(target_arch = "wasm32"))]
-const SAVE_DIR_NAME: &str = "WebHatchery";
+const SAVE_FILE_NAME: &str = "food_frenzy.json";
 #[cfg(not(target_arch = "wasm32"))]
-const SAVE_FILE_NAME: &str = "food_frenzy";
-#[cfg(not(target_arch = "wasm32"))]
-const SAVE_FILE_EXT: &str = "json";
+const TEST_SAVE_PATH_ENV: &str = "FOOD_FRENZY_TEST_SAVE_PATH";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FoodFrenzySave {
@@ -53,44 +51,12 @@ pub fn load_game() -> Result<Option<FoodFrenzySave>, String> {
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn save_path() -> Result<PathBuf, String> {
-    if let Some(path) = test_save_path_override() {
-        return Ok(path);
-    }
-
-    let mut path = dirs::data_dir()
-        .or_else(dirs::document_dir)
-        .or_else(current_dir)
-        .ok_or_else(|| "Failed to resolve save directory".to_string())?;
-
-    path.push(SAVE_DIR_NAME);
-    path.push("game_apps");
-    path.push("food_frenzy");
-    std::fs::create_dir_all(&path).map_err(|error| {
-        format!(
-            "Failed to create save directory {}: {error}",
-            path.display()
-        )
-    })?;
-    path.push(format!("{SAVE_FILE_NAME}.{SAVE_FILE_EXT}"));
-    Ok(path)
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn test_save_path_override() -> Option<PathBuf> {
-    #[cfg(test)]
-    {
-        std::env::var_os("FOOD_FRENZY_TEST_SAVE_PATH").map(PathBuf::from)
-    }
-
-    #[cfg(not(test))]
-    {
-        None
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn current_dir() -> Option<PathBuf> {
-    std::env::current_dir().ok()
+    macroquad_toolkit::persistence::get_webhatchery_game_app_path(
+        "food_frenzy",
+        SAVE_FILE_NAME,
+        Some(TEST_SAVE_PATH_ENV),
+    )
+    .ok_or_else(|| "Failed to resolve save directory".to_string())
 }
 
 fn save_json<T: Serialize>(key: &str, value: &T) -> Result<(), String> {
@@ -106,7 +72,7 @@ fn save_json<T: Serialize>(key: &str, value: &T) -> Result<(), String> {
     #[cfg(not(target_arch = "wasm32"))]
     {
         let path = path_from_key(key)?;
-        std::fs::write(&path, serialized)
+        macroquad_toolkit::persistence::save_string_atomic(&path, &serialized)
             .map_err(|error| format!("Failed to write save file '{}': {error}", path.display()))
     }
 }
