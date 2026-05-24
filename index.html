@@ -3,10 +3,14 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Feast Frenzy | Web Hatchery Games</title>
     <link rel="stylesheet" href="../shared.css">
     <style>
+        .game-page {
+            max-width: 1920px;
+        }
+
         .game-container canvas {
             width: 100%;
             max-width: 1920px;
@@ -79,7 +83,14 @@
                         <li><span class="label">Platform</span><span class="value">Browser, Windows</span></li>
                     </ul>
                 </div>
-            </aside>
+
+                <div class="sidebar-section">
+                    <h3>Downloads</h3>
+                    <a href="dist/food_frenzy_windows.zip" class="btn btn-secondary"
+                        style="width: 100%; justify-content: center;" download>
+                        📥 Windows Build
+                    </a>
+                </div>            </aside>
         </div>
 
         <footer class="game-footer">
@@ -135,3 +146,4 @@
 </body>
 
 </html>
+
