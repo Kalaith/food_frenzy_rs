@@ -8,14 +8,28 @@ mod ui;
 
 use crate::data::STATION_COLORS;
 use crate::engine::*;
-use crate::persistence::{load_game, save_game};
+use crate::persistence::{load_game, save_game, FoodFrenzySave};
 use crate::state::{GameState, GuestState, ProgressionState, Timers, INFINITE_INGREDIENTS};
-use crate::ui::{draw_and_collect_hitboxes, UiActions};
+use crate::ui::{
+    draw_and_collect_hitboxes, draw_settings_screen, draw_title_screen, SettingsAction,
+    SettingsActions, TitleAction, TitleActions, UiActions,
+};
 use macroquad::prelude::*;
 use std::collections::{HashMap, HashSet};
 
 const SAVE_INTERVAL_MS: f32 = 5_000.0;
 const PLAYER_COOKING_START_LOCK_MS: f32 = 900.0;
+const TITLE_TEXTURE_PATHS: [&str; 2] = [
+    "assets/images/food_frenzy_title.png",
+    "food_frenzy_title.png",
+];
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum AppScreen {
+    Title,
+    Settings,
+    Playing,
+}
 
 #[derive(Clone)]
 enum UiCommand {
@@ -59,56 +73,119 @@ async fn load_character_textures(data: &crate::data::GameData) -> HashMap<String
     textures
 }
 
+async fn load_title_texture() -> Option<Texture2D> {
+    for path in TITLE_TEXTURE_PATHS {
+        if let Ok(texture) = load_texture(path).await {
+            texture.set_filter(FilterMode::Linear);
+            return Some(texture);
+        }
+    }
+
+    None
+}
+
 #[macroquad::main(window_conf)]
 async fn main() {
     let data = data::GameData::load();
     let character_textures = load_character_textures(&data).await;
+    let title_texture = load_title_texture().await;
     let mut game_state = GameState::new(&data);
     let mut progression_state = ProgressionState::from_game_data(&data);
     let mut guest_state = GuestState::new();
     let mut timers = Timers::new();
     let mut selected_station: Option<String> = None;
-    let mut startup_message = "Game initialized".to_string();
-
-    let save = load_game();
-    match save {
-        Ok(Some(saved)) => {
-            game_state = saved.game_state;
-            progression_state = saved.progression_state;
-            guest_state = saved.guest_state;
-            timers = saved.timers;
-            selected_station = saved.selected_station;
-            startup_message = "Loaded game save".to_string();
-        }
-        Ok(None) => {}
-        Err(error) => {
-            startup_message = format!("Load failed: {error}");
-        }
-    }
-
-    progression_state.ensure_customer_unlocks(&data);
-    ensure_compatibility(
-        &data,
-        &progression_state,
-        &mut game_state,
-        &mut selected_station,
-    );
-    progression_state.set_upgrade_costs();
-    if !game_state.messages.contains(&startup_message) {
-        game_state.add_message(startup_message);
-    }
-    if timers.next_spawn_ms <= 0.0 {
-        timers.next_spawn_ms = f64::from(data.balance.customer_spawn_interval);
-    }
+    let mut app_screen = AppScreen::Title;
+    let mut title_message = String::new();
+    let mut fullscreen_enabled = false;
 
     loop {
         let dt = get_frame_time();
         let dt_ms = dt * 1000.0;
-        let now_ms = get_time() * 1000.0;
+
+        match app_screen {
+            AppScreen::Title => {
+                let title_hits = draw_title_screen(title_texture.as_ref(), &title_message);
+                if let Some(action) = read_title_action(&title_hits) {
+                    match action {
+                        TitleAction::NewGame => {
+                            start_new_game(
+                                &data,
+                                &mut game_state,
+                                &mut progression_state,
+                                &mut guest_state,
+                                &mut timers,
+                                &mut selected_station,
+                            );
+                            title_message.clear();
+                            app_screen = AppScreen::Playing;
+                        }
+                        TitleAction::LoadGame => match load_saved_game(
+                            &data,
+                            &mut game_state,
+                            &mut progression_state,
+                            &mut guest_state,
+                            &mut timers,
+                            &mut selected_station,
+                        ) {
+                            Ok(()) => {
+                                title_message.clear();
+                                app_screen = AppScreen::Playing;
+                            }
+                            Err(message) => {
+                                title_message = message;
+                            }
+                        },
+                        TitleAction::Settings => {
+                            app_screen = AppScreen::Settings;
+                        }
+                        TitleAction::Exit => {
+                            macroquad::miniquad::window::quit();
+                        }
+                    }
+                }
+
+                if is_key_pressed(KeyCode::Enter) {
+                    start_new_game(
+                        &data,
+                        &mut game_state,
+                        &mut progression_state,
+                        &mut guest_state,
+                        &mut timers,
+                        &mut selected_station,
+                    );
+                    title_message.clear();
+                    app_screen = AppScreen::Playing;
+                }
+
+                next_frame().await;
+                continue;
+            }
+            AppScreen::Settings => {
+                let settings_hits = draw_settings_screen(fullscreen_enabled);
+                if let Some(action) = read_settings_action(&settings_hits) {
+                    match action {
+                        SettingsAction::ToggleFullscreen => {
+                            fullscreen_enabled = !fullscreen_enabled;
+                            set_fullscreen(fullscreen_enabled);
+                        }
+                        SettingsAction::Back => {
+                            app_screen = AppScreen::Title;
+                        }
+                    }
+                }
+
+                if is_key_pressed(KeyCode::Escape) {
+                    app_screen = AppScreen::Title;
+                }
+
+                next_frame().await;
+                continue;
+            }
+            AppScreen::Playing => {}
+        }
 
         update_game_world(
             dt_ms,
-            now_ms,
             &data,
             &mut game_state,
             &mut progression_state,
@@ -122,6 +199,7 @@ async fn main() {
             &game_state,
             &progression_state,
             &data,
+            timers.elapsed_ms,
             &selected_station,
             &character_textures,
         );
@@ -250,6 +328,118 @@ async fn main() {
 
         next_frame().await;
     }
+}
+
+fn read_title_action(ui_hits: &TitleActions) -> Option<TitleAction> {
+    if !is_mouse_button_pressed(MouseButton::Left) {
+        return None;
+    }
+
+    ui_hits.action_at(vec2(mouse_position().0, mouse_position().1))
+}
+
+fn read_settings_action(ui_hits: &SettingsActions) -> Option<SettingsAction> {
+    if !is_mouse_button_pressed(MouseButton::Left) {
+        return None;
+    }
+
+    ui_hits.action_at(vec2(mouse_position().0, mouse_position().1))
+}
+
+fn start_new_game(
+    data: &crate::data::GameData,
+    game_state: &mut GameState,
+    progression_state: &mut ProgressionState,
+    guest_state: &mut GuestState,
+    timers: &mut Timers,
+    selected_station: &mut Option<String>,
+) {
+    *game_state = GameState::new(data);
+    *progression_state = ProgressionState::from_game_data(data);
+    *guest_state = GuestState::new();
+    *timers = Timers::new();
+    *selected_station = None;
+    initialize_active_game(
+        data,
+        progression_state,
+        game_state,
+        selected_station,
+        timers,
+        "New game started",
+    );
+}
+
+fn load_saved_game(
+    data: &crate::data::GameData,
+    game_state: &mut GameState,
+    progression_state: &mut ProgressionState,
+    guest_state: &mut GuestState,
+    timers: &mut Timers,
+    selected_station: &mut Option<String>,
+) -> Result<(), String> {
+    let Some(saved) = load_game().map_err(|error| format!("Load failed: {error}"))? else {
+        return Err("No saved game found.".to_string());
+    };
+
+    restore_save(
+        saved,
+        data,
+        game_state,
+        progression_state,
+        guest_state,
+        timers,
+        selected_station,
+    );
+    Ok(())
+}
+
+fn restore_save(
+    saved: FoodFrenzySave,
+    data: &crate::data::GameData,
+    game_state: &mut GameState,
+    progression_state: &mut ProgressionState,
+    guest_state: &mut GuestState,
+    timers: &mut Timers,
+    selected_station: &mut Option<String>,
+) {
+    *game_state = saved.game_state;
+    *progression_state = saved.progression_state;
+    *guest_state = saved.guest_state;
+    *timers = saved.timers;
+    *selected_station = saved.selected_station;
+    initialize_active_game(
+        data,
+        progression_state,
+        game_state,
+        selected_station,
+        timers,
+        "Loaded game save",
+    );
+}
+
+fn initialize_active_game(
+    data: &crate::data::GameData,
+    progression: &mut ProgressionState,
+    game_state: &mut GameState,
+    selected_station: &mut Option<String>,
+    timers: &mut Timers,
+    startup_message: &str,
+) {
+    progression.ensure_customer_unlocks(data);
+    ensure_compatibility(data, progression, game_state, selected_station);
+    progression.set_upgrade_costs();
+    if !startup_message.is_empty()
+        && !game_state
+            .messages
+            .iter()
+            .any(|message| message == startup_message)
+    {
+        game_state.add_message(startup_message.to_string());
+    }
+    if timers.next_spawn_ms <= 0.0 {
+        timers.next_spawn_ms = f64::from(data.balance.customer_spawn_interval);
+    }
+    timers.save_accum_ms = 0.0;
 }
 
 fn read_input_action(ui_hits: UiActions) -> Option<UiCommand> {
@@ -753,7 +943,6 @@ fn handle_keyboard_shortcuts(
 
 fn update_game_world(
     dt_ms: f32,
-    now_ms: f64,
     data: &crate::data::GameData,
     game_state: &mut GameState,
     progression_state: &mut ProgressionState,
@@ -761,6 +950,7 @@ fn update_game_world(
     timers: &mut Timers,
 ) {
     timers.elapsed_ms += f64::from(dt_ms);
+    let now_ms = timers.elapsed_ms;
     timers.patience_accum_ms += dt_ms;
     timers.decay_accum_ms += dt_ms;
     timers.trait_accum_ms += dt_ms;
