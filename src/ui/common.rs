@@ -1,0 +1,259 @@
+use crate::data::GameData;
+use crate::engine::{
+    patience_multiplier, KITCHEN_SERVICE_LEFT, RESTAURANT_FLOOR_HEIGHT, RESTAURANT_FLOOR_WIDTH,
+};
+use crate::state::{Customer, GameState, ProgressionState};
+use macroquad::prelude::*;
+use macroquad_toolkit::ui::{
+    draw_badge as toolkit_draw_badge, draw_text_centered_in_box, progress_bar,
+};
+use std::collections::HashMap;
+
+pub(super) const BACKGROUND: Color = Color::new(0.055, 0.055, 0.065, 1.0);
+pub(super) const PANEL: Color = Color::new(0.085, 0.085, 0.105, 0.94);
+pub(super) const PANEL_SOFT: Color = Color::new(0.13, 0.13, 0.155, 1.0);
+pub(super) const TEXT: Color = Color::new(0.92, 0.91, 0.86, 1.0);
+pub(super) const MUTED: Color = Color::new(0.55, 0.56, 0.58, 1.0);
+pub(super) const LINE: Color = Color::new(0.28, 0.27, 0.26, 1.0);
+pub(super) const ACCENT: Color = Color::new(0.36, 0.56, 0.86, 1.0);
+
+fn station_label(color: &str) -> &'static str {
+    match color {
+        "blue" => "Blue",
+        "green" => "Green",
+        "yellow" => "Yellow",
+        "red" => "Red",
+        _ => "Dish",
+    }
+}
+
+pub(super) fn station_draw_color(color: &str) -> Color {
+    match color {
+        "blue" => SKYBLUE,
+        "green" => LIME,
+        "yellow" => YELLOW,
+        "red" => ORANGE,
+        _ => LIGHTGRAY,
+    }
+}
+
+pub(super) fn dish_label(data: &GameData, color: &str) -> String {
+    data.dish_type_by_color(color)
+        .map(|dish| dish.name.clone())
+        .unwrap_or_else(|| station_label(color).to_string())
+}
+
+pub(super) fn ellipsize(text: &str, max_chars: usize) -> String {
+    if text.chars().count() <= max_chars {
+        return text.to_string();
+    }
+    let mut trimmed: String = text.chars().take(max_chars.saturating_sub(3)).collect();
+    trimmed.push_str("...");
+    trimmed
+}
+
+pub(super) fn customer_fallback_color(customer_type: &str) -> Color {
+    match customer_type {
+        "pig" => PINK,
+        "cow" => BEIGE,
+        "sheep" => LIGHTGRAY,
+        "rabbit" => WHITE,
+        "cat" => GOLD,
+        "deer" => BROWN,
+        "duck" => YELLOW,
+        "chicken" => ORANGE,
+        "fish" => SKYBLUE,
+        "fox" => RED,
+        "goat" => LIME,
+        "bear" => DARKBROWN,
+        "monkey" => PURPLE,
+        _ => MAGENTA,
+    }
+}
+
+pub(super) fn draw_panel(rect: Rect) {
+    let surface = macroquad_toolkit::ui::SurfaceStyle::new(PANEL)
+        .with_border(1.0, Color::new(0.20, 0.20, 0.22, 1.0));
+    macroquad_toolkit::ui::draw_surface(rect, &surface);
+}
+
+pub(super) fn draw_section_title(text: &str, x: f32, y: f32) {
+    draw_text(text, x, y, 22.0, TEXT);
+}
+
+pub(super) fn draw_button(rect: Rect, text: &str, active: bool, disabled: bool) {
+    let color = if disabled {
+        Color::new(0.18, 0.18, 0.19, 1.0)
+    } else if active {
+        ACCENT
+    } else {
+        Color::new(0.25, 0.25, 0.27, 1.0)
+    };
+    let surface = macroquad_toolkit::ui::SurfaceStyle::new(color)
+        .with_border(1.0, if disabled { MUTED } else { TEXT });
+    macroquad_toolkit::ui::draw_surface(rect, &surface);
+
+    let font_size = if text.len() > 13 { 14.0 } else { 16.0 };
+    draw_text_centered_in_box(
+        text,
+        rect.x + 6.0,
+        rect.y,
+        rect.w - 12.0,
+        rect.h,
+        font_size,
+        if disabled { MUTED } else { WHITE },
+    );
+}
+
+pub(super) fn draw_menu_button(rect: Rect, text: &str) {
+    let mouse = vec2(mouse_position().0, mouse_position().1);
+    let hovered = rect.contains(mouse);
+    let color = if hovered {
+        ACCENT
+    } else {
+        Color::new(0.16, 0.14, 0.13, 0.96)
+    };
+    let border = if hovered {
+        WHITE
+    } else {
+        Color::new(0.78, 0.52, 0.30, 1.0)
+    };
+    let surface = macroquad_toolkit::ui::SurfaceStyle::new(color).with_border(1.5, border);
+    macroquad_toolkit::ui::draw_surface(rect, &surface);
+    draw_text_centered_in_box(
+        text,
+        rect.x + 8.0,
+        rect.y,
+        rect.w - 16.0,
+        rect.h,
+        (rect.h * 0.42).clamp(18.0, 24.0),
+        WHITE,
+    );
+}
+
+pub(super) fn draw_badge(rect: Rect, text: &str, color: Color) {
+    toolkit_draw_badge(rect, text, color, WHITE);
+}
+
+pub(super) fn draw_card(rect: Rect, title: &str) {
+    let surface = macroquad_toolkit::ui::SurfaceStyle::new(Color::new(0.105, 0.105, 0.125, 1.0))
+        .with_border(1.0, LINE);
+    macroquad_toolkit::ui::draw_surface(rect, &surface);
+    draw_text(title, rect.x + 12.0, rect.y + 25.0, 19.0, TEXT);
+}
+
+pub(super) fn draw_tooltip(text: &str, center_x: f32, y: f32) {
+    let text_dim = measure_text(text, None, 14, 1.0);
+    let rect = Rect::new(
+        center_x - text_dim.width * 0.5 - 10.0,
+        y,
+        text_dim.width + 20.0,
+        24.0,
+    );
+    let surface = macroquad_toolkit::ui::SurfaceStyle::new(Color::new(0.02, 0.02, 0.025, 0.86))
+        .with_border(1.0, SKYBLUE);
+    macroquad_toolkit::ui::draw_surface(rect, &surface);
+    draw_text(text, rect.x + 10.0, rect.y + 17.0, 14.0, TEXT);
+}
+
+pub(super) fn draw_bar(
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    value: f32,
+    max_value: f32,
+    color: Color,
+) {
+    progress_bar(x, y, width, height, value, max_value, color);
+}
+
+pub(super) fn draw_stat(label: &str, value: &str, x: f32, y: f32, w: f32) {
+    let surface = macroquad_toolkit::ui::SurfaceStyle::new(Color::new(0.10, 0.10, 0.12, 1.0));
+    macroquad_toolkit::ui::draw_surface(Rect::new(x, y, w, 44.0), &surface);
+    draw_text(label, x + 12.0, y + 17.0, 13.0, MUTED);
+    draw_text(value, x + 12.0, y + 36.0, 18.0, TEXT);
+}
+
+pub(super) fn sorted_ingredient_lines(game: &GameState) -> Vec<String> {
+    let mut ingredients: Vec<_> = game
+        .ingredients
+        .iter()
+        .filter(|(name, amount)| name.as_str() != "regular" && **amount > 0)
+        .map(|(name, amount)| format!("{name}: {amount}"))
+        .collect();
+    ingredients.sort();
+    ingredients
+}
+
+pub(super) fn format_unlock_cost(cost: &HashMap<String, i64>) -> String {
+    if cost.is_empty() {
+        return "Open".to_string();
+    }
+
+    let mut parts: Vec<_> = cost
+        .iter()
+        .map(|(ingredient, amount)| format!("{amount} {ingredient}"))
+        .collect();
+    parts.sort();
+    parts.join(", ")
+}
+
+pub(super) fn can_afford_cost(game: &GameState, cost: &HashMap<String, i64>) -> bool {
+    cost.iter()
+        .all(|(ingredient, amount)| game.has_ing(ingredient, *amount))
+}
+
+pub(super) fn player_near_customer(game: &GameState, customer: &Customer, range: f32) -> bool {
+    if game.player.x < 0.0 || !customer.is_seated {
+        return false;
+    }
+    let dx = game.player.x - customer.floor_x;
+    let dy = game.player.y - customer.floor_y;
+    (dx * dx + dy * dy).sqrt() <= range
+}
+
+fn patience_limit_ms(customer: &Customer, data: &GameData, progression: &ProgressionState) -> f32 {
+    let traits = customer.traits(data);
+    let mut patience = data.balance.customer_patience_time * patience_multiplier(progression);
+    if traits.fast_spoilage {
+        patience *= 0.55;
+    }
+    patience.max(1.0)
+}
+
+pub(super) fn patience_remaining_ratio(
+    customer: &Customer,
+    data: &GameData,
+    progression: &ProgressionState,
+    now_ms: f64,
+) -> f32 {
+    let elapsed = (now_ms - customer.arrived_at_ms).max(0.0) as f32;
+    (1.0 - elapsed / patience_limit_ms(customer, data, progression)).clamp(0.0, 1.0)
+}
+
+pub(super) fn patience_color(ratio: f32) -> Color {
+    if ratio < 0.24 {
+        RED
+    } else if ratio < 0.48 {
+        ORANGE
+    } else {
+        LIME
+    }
+}
+
+pub(super) fn floor_to_screen(floor: Rect, world_x: f32, world_y: f32) -> Vec2 {
+    vec2(
+        floor.x + (world_x / RESTAURANT_FLOOR_WIDTH) * floor.w,
+        floor.y + (world_y / RESTAURANT_FLOOR_HEIGHT) * floor.h,
+    )
+}
+
+pub(super) fn kitchen_to_screen(panel: Rect, world_x: f32, world_y: f32) -> Vec2 {
+    let x_t = ((world_x - KITCHEN_SERVICE_LEFT) / -KITCHEN_SERVICE_LEFT).clamp(0.0, 1.0);
+    let y_t = (world_y / RESTAURANT_FLOOR_HEIGHT).clamp(0.0, 1.0);
+    vec2(
+        panel.x + 22.0 + x_t * (panel.w - 44.0),
+        panel.y + y_t * panel.h,
+    )
+}
