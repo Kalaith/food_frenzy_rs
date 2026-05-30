@@ -1,7 +1,7 @@
 use super::actors::{draw_customer_sprite, draw_player_actor};
 use super::common::{
     dish_label, draw_bar, draw_button, ellipsize, floor_to_screen, patience_color,
-    patience_remaining_ratio, station_draw_color, LINE, MUTED, TEXT,
+    patience_remaining_ratio, station_draw_color, GOLD, LINE, MUTED, TEXT,
 };
 use super::types::UiActions;
 use crate::data::GameData;
@@ -16,9 +16,16 @@ fn draw_floor_pattern(floor: Rect) {
         floor.y,
         floor.w,
         floor.h,
-        Color::new(0.105, 0.095, 0.085, 1.0),
+        Color::new(0.080, 0.070, 0.062, 1.0),
     );
-    let tile = 68.0;
+    draw_rectangle(
+        floor.x,
+        floor.y,
+        floor.w,
+        96.0,
+        Color::new(0.070, 0.050, 0.040, 1.0),
+    );
+    let tile = 54.0;
     let mut x = floor.x;
     while x < floor.x + floor.w {
         draw_line(
@@ -27,7 +34,7 @@ fn draw_floor_pattern(floor: Rect) {
             x,
             floor.y + floor.h,
             1.0,
-            Color::new(0.15, 0.14, 0.13, 1.0),
+            Color::new(0.12, 0.105, 0.095, 1.0),
         );
         x += tile;
     }
@@ -39,10 +46,68 @@ fn draw_floor_pattern(floor: Rect) {
             floor.x + floor.w,
             y,
             1.0,
-            Color::new(0.15, 0.14, 0.13, 1.0),
+            Color::new(0.12, 0.105, 0.095, 1.0),
         );
         y += tile;
     }
+    draw_rectangle_lines(
+        floor.x + 4.0,
+        floor.y + 4.0,
+        floor.w - 8.0,
+        floor.h - 8.0,
+        1.0,
+        LINE,
+    );
+}
+
+fn draw_room_fixtures(floor: Rect) {
+    let counter = Rect::new(floor.x + 18.0, floor.y + 18.0, floor.w * 0.34, 64.0);
+    draw_rectangle(
+        counter.x,
+        counter.y,
+        counter.w,
+        counter.h,
+        Color::new(0.11, 0.075, 0.045, 1.0),
+    );
+    draw_rectangle_lines(counter.x, counter.y, counter.w, counter.h, 1.0, GOLD);
+    draw_text(
+        "Kitchen Pass",
+        counter.x + 16.0,
+        counter.y + 24.0,
+        16.0,
+        GOLD,
+    );
+    let station_gap = ((counter.w - 72.0) / 3.0).clamp(36.0, 58.0);
+    for index in 0..4 {
+        draw_circle(
+            counter.x + 36.0 + index as f32 * station_gap,
+            counter.y + 45.0,
+            11.0,
+            station_draw_color(crate::data::STATION_COLORS[index]),
+        );
+    }
+
+    let runner = Rect::new(
+        floor.x + floor.w * 0.24,
+        floor.y + 118.0,
+        floor.w * 0.10,
+        floor.h - 188.0,
+    );
+    draw_rectangle(
+        runner.x,
+        runner.y,
+        runner.w,
+        runner.h,
+        Color::new(0.19, 0.055, 0.045, 0.88),
+    );
+    draw_rectangle_lines(
+        runner.x,
+        runner.y,
+        runner.w,
+        runner.h,
+        1.0,
+        Color::new(0.44, 0.26, 0.15, 1.0),
+    );
 }
 
 fn draw_table(
@@ -56,15 +121,14 @@ fn draw_table(
     game: &GameState,
     ui: &mut UiActions,
 ) {
-    let table_w = 154.0;
-    let table_h = 90.0;
+    let table_radius = 48.0;
     let occupied = customer.is_some();
     let ready_for_lounge =
         customer.is_some_and(|customer| crate::engine::can_process_customer(customer, data));
     let table_color = if occupied {
-        Color::new(0.32, 0.22, 0.14, 1.0)
+        Color::new(0.23, 0.15, 0.09, 1.0)
     } else {
-        Color::new(0.20, 0.16, 0.13, 1.0)
+        Color::new(0.14, 0.11, 0.09, 1.0)
     };
     let outline = if ready_for_lounge {
         SKYBLUE
@@ -73,71 +137,58 @@ fn draw_table(
     } else {
         Color::new(0.42, 0.34, 0.25, 1.0)
     };
-    let rect = Rect::new(
-        center.x - table_w * 0.5,
-        center.y - table_h * 0.5,
-        table_w,
-        table_h,
+    let rect = Rect::new(center.x - 74.0, center.y - 58.0, 148.0, 116.0);
+    draw_circle(
+        center.x - 45.0,
+        center.y,
+        18.0,
+        Color::new(0.10, 0.075, 0.06, 1.0),
     );
-    draw_rectangle(rect.x, rect.y, rect.w, rect.h, table_color);
-    draw_rectangle_lines(
-        rect.x,
-        rect.y,
-        rect.w,
-        rect.h,
+    draw_circle(
+        center.x + 45.0,
+        center.y,
+        18.0,
+        Color::new(0.10, 0.075, 0.06, 1.0),
+    );
+    draw_circle(center.x, center.y, table_radius, table_color);
+    draw_circle_lines(
+        center.x,
+        center.y,
+        table_radius,
         if ready_for_lounge { 2.5 } else { 1.5 },
         outline,
     );
+    draw_circle(center.x, center.y, 14.0, Color::new(0.50, 0.27, 0.15, 1.0));
     draw_text(
         &format!("T{}", table_index + 1),
-        rect.x + 10.0,
-        rect.y + 22.0,
+        center.x - 10.0,
+        center.y + 5.0,
         17.0,
-        Color::new(0.78, 0.67, 0.52, 1.0),
+        GOLD,
     );
 
     let Some(customer) = customer else {
-        draw_text("open", rect.x + 48.0, rect.y + 22.0, 14.0, MUTED);
+        draw_text("open", center.x - 16.0, center.y + 27.0, 13.0, MUTED);
         return;
     };
 
     let patience = patience_remaining_ratio(customer, data, progression, now_ms);
-    draw_text(
-        if customer.is_seated {
-            "seated"
-        } else {
-            "arriving"
-        },
-        rect.x + 48.0,
-        rect.y + 22.0,
-        14.0,
-        if customer.is_seated { LIGHTGRAY } else { MUTED },
-    );
-    draw_text(
-        &ellipsize(&customer.display_name, 14),
-        rect.x + 10.0,
-        rect.y + 46.0,
-        15.0,
-        TEXT,
-    );
-
-    let mut chip_x = rect.x + 10.0;
+    let mut chip_x = center.x - 26.0;
     if let Some(customer_type) = data.customer_type_by_id(&customer.customer_type) {
         for dish_color in customer_type.preferred_dishes.iter().take(3) {
             draw_circle(
                 chip_x + 6.0,
-                rect.y + 62.0,
+                center.y - 30.0,
                 5.0,
                 station_draw_color(dish_color),
             );
             chip_x += 18.0;
         }
     }
-    draw_text("order", chip_x + 2.0, rect.y + 66.0, 12.0, MUTED);
     draw_bar(
-        rect.x + 10.0,
-        rect.y + rect.h - 13.0,
-        rect.w - 20.0,
+        center.x - 50.0,
+        center.y + 60.0,
+        100.0,
         6.0,
         patience,
         1.0,
@@ -152,17 +203,17 @@ fn draw_table(
     if can_serve {
         let serve_rect = Rect::new(rect.x + rect.w - 62.0, rect.y + 12.0, 50.0, 24.0);
         draw_button(serve_rect, "Serve", true, false);
-        draw_rectangle_lines(rect.x, rect.y, rect.w, rect.h, 2.0, SKYBLUE);
+        draw_circle_lines(center.x, center.y, table_radius + 5.0, 2.0, SKYBLUE);
         ui.serve_customer.insert(customer.id, serve_rect);
     }
 }
 
 fn draw_last_meal_lounge(floor: Rect, game: &GameState, data: &GameData) {
     let lounge = Rect::new(
-        floor.x + floor.w - 244.0,
-        floor.y + floor.h - 128.0,
-        216.0,
-        96.0,
+        floor.x + floor.w - 250.0,
+        floor.y + floor.h - 154.0,
+        220.0,
+        122.0,
     );
     let ready_guest = game
         .customers
@@ -175,9 +226,9 @@ fn draw_last_meal_lounge(floor: Rect, game: &GameState, data: &GameData) {
         lounge.w,
         lounge.h,
         if is_active {
-            Color::new(0.12, 0.14, 0.16, 1.0)
+            Color::new(0.12, 0.08, 0.12, 1.0)
         } else {
-            Color::new(0.075, 0.075, 0.085, 1.0)
+            Color::new(0.065, 0.052, 0.062, 1.0)
         },
     );
     draw_rectangle_lines(
@@ -188,11 +239,26 @@ fn draw_last_meal_lounge(floor: Rect, game: &GameState, data: &GameData) {
         if is_active { 2.0 } else { 1.0 },
         if is_active { SKYBLUE } else { LINE },
     );
+    draw_line(
+        lounge.x + 20.0,
+        lounge.y + 30.0,
+        lounge.x + lounge.w - 20.0,
+        lounge.y + 30.0,
+        2.0,
+        GOLD,
+    );
+    draw_circle(
+        lounge.x + lounge.w * 0.50,
+        lounge.y + 70.0,
+        35.0,
+        Color::new(0.04, 0.035, 0.04, 1.0),
+    );
+    draw_circle_lines(lounge.x + lounge.w * 0.50, lounge.y + 70.0, 36.0, 1.5, GOLD);
     draw_text(
         "Last Meal Lounge",
         lounge.x + 14.0,
-        lounge.y + 28.0,
-        19.0,
+        lounge.y + 23.0,
+        17.0,
         TEXT,
     );
     let status = if game.special_table_busy {
@@ -208,16 +274,16 @@ fn draw_last_meal_lounge(floor: Rect, game: &GameState, data: &GameData) {
     draw_text(
         &status,
         lounge.x + 14.0,
-        lounge.y + 53.0,
-        15.0,
+        lounge.y + lounge.h - 39.0,
+        14.0,
         if is_active { LIGHTGRAY } else { MUTED },
     );
     if game.special_table_busy {
         draw_bar(
             lounge.x + 14.0,
-            lounge.y + 70.0,
+            lounge.y + lounge.h - 21.0,
             lounge.w - 28.0,
-            7.0,
+            6.0,
             data.balance.special_table_process_time - game.special_table_timer,
             data.balance.special_table_process_time.max(1.0),
             SKYBLUE,
@@ -226,7 +292,7 @@ fn draw_last_meal_lounge(floor: Rect, game: &GameState, data: &GameData) {
         draw_text(
             "VIP threshold service",
             lounge.x + 14.0,
-            lounge.y + 76.0,
+            lounge.y + lounge.h - 18.0,
             12.0,
             MUTED,
         );
@@ -244,9 +310,9 @@ pub(super) fn draw_dining_room(
     ui: &mut UiActions,
 ) {
     draw_floor_pattern(floor);
+    draw_room_fixtures(floor);
     draw_rectangle_lines(floor.x, floor.y, floor.w, floor.h, 1.5, LINE);
 
-    draw_text("Dining room", floor.x + 18.0, floor.y + 30.0, 24.0, TEXT);
     let selected_text = selected_station.as_deref().map(|color| {
         let ready = game
             .cooking_stations
@@ -259,16 +325,29 @@ pub(super) fn draw_dining_room(
             dish_label(data, color)
         }
     });
+    let plaque = Rect::new(
+        floor.x + 18.0,
+        floor.y + floor.h - 48.0,
+        floor.w * 0.48,
+        34.0,
+    );
+    draw_rectangle(
+        plaque.x,
+        plaque.y,
+        plaque.w,
+        plaque.h,
+        Color::new(0.04, 0.035, 0.04, 0.86),
+    );
+    draw_rectangle_lines(plaque.x, plaque.y, plaque.w, plaque.h, 1.0, LINE);
     draw_text(
         &format!(
             "Serving: {}",
-            selected_text
-                .unwrap_or_else(|| "No dish - cook, then click a ready station".to_string())
+            selected_text.unwrap_or_else(|| "cook, carry, then serve".to_string())
         ),
-        floor.x + 18.0,
-        floor.y + 54.0,
-        16.0,
-        MUTED,
+        plaque.x + 12.0,
+        plaque.y + 23.0,
+        15.0,
+        TEXT,
     );
 
     let entrance_world = restaurant_entrance_position();
@@ -278,17 +357,16 @@ pub(super) fn draw_dining_room(
         entrance.y - 28.0,
         88.0,
         56.0,
-        Color::new(0.07, 0.10, 0.12, 1.0),
+        Color::new(0.055, 0.045, 0.040, 1.0),
     );
-    draw_rectangle_lines(
-        entrance.x - 44.0,
-        entrance.y - 28.0,
-        88.0,
-        56.0,
-        1.5,
-        SKYBLUE,
+    draw_rectangle_lines(entrance.x - 44.0, entrance.y - 28.0, 88.0, 56.0, 1.5, GOLD);
+    draw_text(
+        "Front Door",
+        entrance.x - 34.0,
+        entrance.y + 6.0,
+        15.0,
+        GOLD,
     );
-    draw_text("Door", entrance.x - 18.0, entrance.y + 6.0, 16.0, SKYBLUE);
 
     draw_last_meal_lounge(floor, game, data);
 
@@ -330,10 +408,12 @@ pub(super) fn draw_dining_room(
     }
 
     if game.customers.is_empty() {
+        let text = "Waiting for guests";
+        let dim = measure_text(text, None, 18, 1.0);
         draw_text(
-            "Waiting for guests.",
-            floor.x + 18.0,
-            floor.y + floor.h - 28.0,
+            text,
+            floor.x + (floor.w - dim.width) * 0.5,
+            floor.y + 116.0,
             18.0,
             MUTED,
         );

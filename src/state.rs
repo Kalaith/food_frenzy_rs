@@ -321,7 +321,7 @@ impl GameState {
             cooking_stations: stations,
             special_table_busy: false,
             special_table_timer: 0.0,
-            messages: vec!["Welcome to Feast Frenzy!".to_string()],
+            messages: vec!["Service started.".to_string()],
             next_customer_id: 1,
             player: PlayerActor::default(),
         }

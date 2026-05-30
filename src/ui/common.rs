@@ -4,18 +4,18 @@ use crate::engine::{
 };
 use crate::state::{Customer, GameState, ProgressionState};
 use macroquad::prelude::*;
-use macroquad_toolkit::ui::{
-    draw_badge as toolkit_draw_badge, draw_text_centered_in_box, progress_bar,
-};
+use macroquad_toolkit::ui::{draw_text_centered_in_box, progress_bar};
 use std::collections::HashMap;
 
-pub(super) const BACKGROUND: Color = Color::new(0.055, 0.055, 0.065, 1.0);
-pub(super) const PANEL: Color = Color::new(0.085, 0.085, 0.105, 0.94);
-pub(super) const PANEL_SOFT: Color = Color::new(0.13, 0.13, 0.155, 1.0);
-pub(super) const TEXT: Color = Color::new(0.92, 0.91, 0.86, 1.0);
-pub(super) const MUTED: Color = Color::new(0.55, 0.56, 0.58, 1.0);
-pub(super) const LINE: Color = Color::new(0.28, 0.27, 0.26, 1.0);
-pub(super) const ACCENT: Color = Color::new(0.36, 0.56, 0.86, 1.0);
+pub(super) const BACKGROUND: Color = Color::new(0.035, 0.032, 0.038, 1.0);
+pub(super) const PANEL: Color = Color::new(0.060, 0.055, 0.065, 0.96);
+pub(super) const CARD: Color = Color::new(0.075, 0.068, 0.075, 0.98);
+pub(super) const TEXT: Color = Color::new(0.93, 0.89, 0.80, 1.0);
+pub(super) const MUTED: Color = Color::new(0.61, 0.58, 0.55, 1.0);
+pub(super) const LINE: Color = Color::new(0.25, 0.20, 0.16, 1.0);
+pub(super) const GOLD: Color = Color::new(0.84, 0.60, 0.31, 1.0);
+pub(super) const ACCENT: Color = Color::new(0.40, 0.64, 0.92, 1.0);
+pub(super) const SUCCESS: Color = Color::new(0.48, 0.78, 0.43, 1.0);
 
 fn station_label(color: &str) -> &'static str {
     match color {
@@ -72,25 +72,50 @@ pub(super) fn customer_fallback_color(customer_type: &str) -> Color {
 }
 
 pub(super) fn draw_panel(rect: Rect) {
-    let surface = macroquad_toolkit::ui::SurfaceStyle::new(PANEL)
-        .with_border(1.0, Color::new(0.20, 0.20, 0.22, 1.0));
+    let surface = macroquad_toolkit::ui::SurfaceStyle::new(PANEL).with_border(1.0, LINE);
     macroquad_toolkit::ui::draw_surface(rect, &surface);
+    draw_rectangle_lines(
+        rect.x + 3.0,
+        rect.y + 3.0,
+        rect.w - 6.0,
+        rect.h - 6.0,
+        1.0,
+        Color::new(0.60, 0.40, 0.23, 0.42),
+    );
 }
 
 pub(super) fn draw_section_title(text: &str, x: f32, y: f32) {
-    draw_text(text, x, y, 22.0, TEXT);
+    let title = text.to_uppercase();
+    let dim = measure_text(&title, None, 17, 1.0);
+    draw_text(&title, x, y, 17.0, GOLD);
+    draw_line(x - 36.0, y - 7.0, x - 8.0, y - 7.0, 1.0, LINE);
+    draw_line(
+        x + dim.width + 8.0,
+        y - 7.0,
+        x + dim.width + 36.0,
+        y - 7.0,
+        1.0,
+        LINE,
+    );
+}
+
+pub(super) fn draw_centered_section_title(text: &str, rect: Rect) {
+    let title = text.to_uppercase();
+    let dim = measure_text(&title, None, 17, 1.0);
+    let x = rect.x + (rect.w - dim.width) * 0.5;
+    draw_section_title(&title, x, rect.y + 29.0);
 }
 
 pub(super) fn draw_button(rect: Rect, text: &str, active: bool, disabled: bool) {
     let color = if disabled {
-        Color::new(0.18, 0.18, 0.19, 1.0)
+        Color::new(0.12, 0.11, 0.12, 1.0)
     } else if active {
-        ACCENT
+        Color::new(0.24, 0.16, 0.10, 1.0)
     } else {
-        Color::new(0.25, 0.25, 0.27, 1.0)
+        Color::new(0.13, 0.11, 0.10, 1.0)
     };
     let surface = macroquad_toolkit::ui::SurfaceStyle::new(color)
-        .with_border(1.0, if disabled { MUTED } else { TEXT });
+        .with_border(1.0, if disabled { LINE } else { GOLD });
     macroquad_toolkit::ui::draw_surface(rect, &surface);
 
     let font_size = if text.len() > 13 { 14.0 } else { 16.0 };
@@ -101,7 +126,7 @@ pub(super) fn draw_button(rect: Rect, text: &str, active: bool, disabled: bool) 
         rect.w - 12.0,
         rect.h,
         font_size,
-        if disabled { MUTED } else { WHITE },
+        if disabled { MUTED } else { TEXT },
     );
 }
 
@@ -131,15 +156,10 @@ pub(super) fn draw_menu_button(rect: Rect, text: &str) {
     );
 }
 
-pub(super) fn draw_badge(rect: Rect, text: &str, color: Color) {
-    toolkit_draw_badge(rect, text, color, WHITE);
-}
-
 pub(super) fn draw_card(rect: Rect, title: &str) {
-    let surface = macroquad_toolkit::ui::SurfaceStyle::new(Color::new(0.105, 0.105, 0.125, 1.0))
-        .with_border(1.0, LINE);
+    let surface = macroquad_toolkit::ui::SurfaceStyle::new(CARD).with_border(1.0, LINE);
     macroquad_toolkit::ui::draw_surface(rect, &surface);
-    draw_text(title, rect.x + 12.0, rect.y + 25.0, 19.0, TEXT);
+    draw_text(title, rect.x + 12.0, rect.y + 25.0, 18.0, GOLD);
 }
 
 pub(super) fn draw_tooltip(text: &str, center_x: f32, y: f32) {
@@ -168,11 +188,42 @@ pub(super) fn draw_bar(
     progress_bar(x, y, width, height, value, max_value, color);
 }
 
-pub(super) fn draw_stat(label: &str, value: &str, x: f32, y: f32, w: f32) {
-    let surface = macroquad_toolkit::ui::SurfaceStyle::new(Color::new(0.10, 0.10, 0.12, 1.0));
-    macroquad_toolkit::ui::draw_surface(Rect::new(x, y, w, 44.0), &surface);
-    draw_text(label, x + 12.0, y + 17.0, 13.0, MUTED);
-    draw_text(value, x + 12.0, y + 36.0, 18.0, TEXT);
+pub(super) fn draw_resource_tile(rect: Rect, label: &str, value: &str, accent: Option<Color>) {
+    let surface = macroquad_toolkit::ui::SurfaceStyle::new(Color::new(0.055, 0.048, 0.055, 1.0))
+        .with_border(1.0, LINE);
+    macroquad_toolkit::ui::draw_surface(rect, &surface);
+    let accent = accent.unwrap_or(GOLD);
+    draw_circle(rect.x + 19.0, rect.y + rect.h * 0.5, 7.0, accent);
+    draw_circle_lines(rect.x + 19.0, rect.y + rect.h * 0.5, 10.0, 1.0, GOLD);
+    draw_text(label, rect.x + 38.0, rect.y + 19.0, 13.0, MUTED);
+    draw_text(value, rect.x + 38.0, rect.y + 42.0, 22.0, TEXT);
+}
+
+pub(super) fn draw_row_value(label: &str, value: &str, rect: Rect, color: Color) {
+    draw_text(label, rect.x, rect.y + 18.0, 15.0, MUTED);
+    let value_dim = measure_text(value, None, 16, 1.0);
+    draw_text(
+        value,
+        rect.x + rect.w - value_dim.width,
+        rect.y + 18.0,
+        16.0,
+        color,
+    );
+}
+
+pub(super) fn draw_station_dots(x: f32, y: f32, count: usize, filled: usize, color: Color) {
+    for index in 0..count {
+        draw_circle(
+            x + index as f32 * 16.0,
+            y,
+            4.5,
+            if index < filled {
+                color
+            } else {
+                Color::new(0.21, 0.18, 0.15, 1.0)
+            },
+        );
+    }
 }
 
 pub(super) fn sorted_ingredient_lines(game: &GameState) -> Vec<String> {
