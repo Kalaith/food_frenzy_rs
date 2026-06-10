@@ -1,4 +1,4 @@
-use crate::assets::{load_character_textures, load_title_texture};
+use crate::assets::{load_asset_pack, load_character_textures, load_title_texture};
 use crate::commands::{
     apply_ui_command, clear_empty_selection, handle_keyboard_shortcuts, read_input_action,
     read_settings_action, read_title_action,
@@ -49,8 +49,9 @@ pub async fn run() {
 impl App {
     async fn load() -> Self {
         let data = GameData::load();
-        let character_textures = load_character_textures(&data).await;
-        let title_texture = load_title_texture().await;
+        let asset_pack = load_asset_pack().await;
+        let character_textures = load_character_textures(&data, asset_pack.as_ref()).await;
+        let title_texture = load_title_texture(asset_pack.as_ref()).await;
         let game_state = GameState::new(&data);
         let progression_state = ProgressionState::from_game_data(&data);
 
