@@ -172,7 +172,7 @@ impl GuestState {
     }
 
     fn random_id() -> String {
-        format!("guest-{}", macroquad::rand::gen_range(0, 999_999))
+        format!("guest-{}", macroquad_toolkit::rng::gen_range(0, 999_999))
     }
 
     pub fn create_guest(&mut self, name: &str, customer_type: &str) -> GuestRecord {
@@ -208,7 +208,7 @@ impl GuestState {
             })
             .collect();
 
-        crate::engine::random_index(candidates.len()).map(|index| candidates[index].clone())
+        macroquad_toolkit::rng::choose(&candidates).map(|guest| (**guest).clone())
     }
 
     pub fn record_guest_visit(&mut self, guest_id: &str) {

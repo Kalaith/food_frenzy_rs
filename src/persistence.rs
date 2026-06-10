@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 const SAVE_VERSION: u32 = 1;
+const GAME_NAME: &str = "food_frenzy";
+#[cfg(target_arch = "wasm32")]
 const SAVE_KEY: &str = "feast-frenzy-save.json";
 #[cfg(not(target_arch = "wasm32"))]
 const SAVE_FILE_NAME: &str = "food_frenzy.json";
@@ -38,78 +40,77 @@ pub fn save_game(
         selected_station: selected_station.clone(),
     };
 
-    save_json(SAVE_KEY, &snapshot)
+    save_json(&snapshot)
 }
 
 pub fn load_game() -> Result<Option<FoodFrenzySave>, String> {
-    if !exists(SAVE_KEY) {
+    if !save_exists() {
         return Ok(None);
     }
 
-    load_json::<FoodFrenzySave>(SAVE_KEY).map(Some)
+    load_json::<FoodFrenzySave>().map(Some)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn save_path() -> Result<PathBuf, String> {
     macroquad_toolkit::persistence::get_webhatchery_game_app_path(
-        "food_frenzy",
+        GAME_NAME,
         SAVE_FILE_NAME,
         Some(TEST_SAVE_PATH_ENV),
     )
     .ok_or_else(|| "Failed to resolve save directory".to_string())
 }
 
-fn save_json<T: Serialize>(key: &str, value: &T) -> Result<(), String> {
-    let serialized = serde_json::to_string_pretty(value)
-        .map_err(|error| format!("Failed to serialize save data: {error}"))?;
-
+fn save_json<T: Serialize>(value: &T) -> Result<(), String> {
     #[cfg(target_arch = "wasm32")]
     {
-        macroquad_toolkit::wasm_storage::storage_set(key, &serialized);
-        Ok(())
+        macroquad_toolkit::persistence::save_json_key(GAME_NAME, SAVE_KEY, value)
     }
 
     #[cfg(not(target_arch = "wasm32"))]
     {
-        let path = path_from_key(key)?;
-        macroquad_toolkit::persistence::save_string_atomic(&path, &serialized)
+        let path = save_path()?;
+        macroquad_toolkit::persistence::save_json_atomic(&path, value)
             .map_err(|error| format!("Failed to write save file '{}': {error}", path.display()))
     }
 }
 
-fn load_json<T: serde::de::DeserializeOwned>(key: &str) -> Result<T, String> {
-    #[cfg(target_arch = "wasm32")]
-    let serialized = macroquad_toolkit::wasm_storage::storage_get(key)
-        .ok_or_else(|| format!("No browser save data found for '{key}'."))?;
-
-    #[cfg(not(target_arch = "wasm32"))]
-    let serialized = {
-        let path = path_from_key(key)?;
-        std::fs::read_to_string(&path)
-            .map_err(|error| format!("Failed to read save file '{}': {error}", path.display()))?
-    };
-
-    serde_json::from_str(&serialized).map_err(|error| format!("Failed to parse save data: {error}"))
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn path_from_key(key: &str) -> Result<PathBuf, String> {
-    match key {
-        SAVE_KEY => save_path(),
-        _ => Err(format!("Unknown native save key: {key}")),
-    }
-}
-
-fn exists(key: &str) -> bool {
+fn load_json<T: serde::de::DeserializeOwned>() -> Result<T, String> {
     #[cfg(target_arch = "wasm32")]
     {
-        macroquad_toolkit::wasm_storage::storage_exists(key)
+        macroquad_toolkit::persistence::load_json_key(GAME_NAME, SAVE_KEY)
+            .or_else(|_| load_legacy_browser_save())
     }
 
     #[cfg(not(target_arch = "wasm32"))]
     {
-        if let Ok(path) = path_from_key(key) {
-            std::path::Path::new(&path).exists()
+        let path = save_path()?;
+        macroquad_toolkit::persistence::load_json(&path)
+            .map_err(|error| format!("Failed to read save file '{}': {error}", path.display()))
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn load_legacy_browser_save<T: serde::de::DeserializeOwned>() -> Result<T, String> {
+    let serialized = macroquad_toolkit::wasm_storage::storage_get(SAVE_KEY)
+        .ok_or_else(|| format!("No browser save data found for '{SAVE_KEY}'."))?;
+    let save = serde_json::from_str(&serialized)
+        .map_err(|error| format!("Failed to parse save data: {error}"))?;
+    let _ = macroquad_toolkit::persistence::save_string_key(GAME_NAME, SAVE_KEY, &serialized);
+    Ok(save)
+}
+
+fn save_exists() -> bool {
+    #[cfg(target_arch = "wasm32")]
+    {
+        macroquad_toolkit::persistence::json_key_exists(GAME_NAME, SAVE_KEY)
+            || macroquad_toolkit::wasm_storage::storage_exists(SAVE_KEY)
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        if let Ok(path) = save_path() {
+            macroquad_toolkit::persistence::file_exists(path)
         } else {
             false
         }

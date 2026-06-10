@@ -208,23 +208,12 @@ pub fn restaurant_table_position(table_index: usize, max_tables: usize) -> (f32,
     )
 }
 
-pub fn random_index(length: usize) -> Option<usize> {
-    if length == 0 {
-        return None;
-    }
-
-    Some(macroquad::rand::gen_range(0, length as i32) as usize)
-}
-
 pub fn chance(probability: f64) -> bool {
-    let roll = macroquad::rand::gen_range(0.0, 1.0);
-    roll < probability as f32
+    macroquad_toolkit::rng::chance(probability as f32)
 }
 
 pub fn random_dish_name(dish: &DishType) -> String {
-    if let Some(index) = random_index(dish.examples.len()) {
-        dish.examples[index].clone()
-    } else {
-        dish.name.clone()
-    }
+    macroquad_toolkit::rng::choose(&dish.examples)
+        .cloned()
+        .unwrap_or_else(|| dish.name.clone())
 }

@@ -1,9 +1,8 @@
 use crate::data::GameData;
 use crate::engine::{
-    chance, max_customer_count, max_satisfaction_for_customer, random_index,
-    restaurant_entrance_position, restaurant_table_position, satisfaction_decay_rate,
-    spawn_interval_ms, CAN_WANDER_CHANCE, CUSTOMER_WALK_SPEED, FOX_STEAL_CHANCE,
-    MONKEY_THROW_CHANCE, RETURNING_GUEST_CHANCE,
+    chance, max_customer_count, max_satisfaction_for_customer, restaurant_entrance_position,
+    restaurant_table_position, satisfaction_decay_rate, spawn_interval_ms, CAN_WANDER_CHANCE,
+    CUSTOMER_WALK_SPEED, FOX_STEAL_CHANCE, MONKEY_THROW_CHANCE, RETURNING_GUEST_CHANCE,
 };
 use crate::gameplay::dish_display_name;
 use crate::player::update_player_movement;
@@ -239,8 +238,8 @@ fn try_spawn_customer(
                 .iter()
                 .filter(|customer_type| progression.is_customer_unlocked(&customer_type.id))
                 .collect();
-            random_index(unlocked_customer_types.len())
-                .map(|index| unlocked_customer_types[index].clone())
+            macroquad_toolkit::rng::choose(&unlocked_customer_types)
+                .map(|customer_type| (**customer_type).clone())
         });
     let Some(customer_type) = selected_type_id else {
         return false;
@@ -343,7 +342,7 @@ fn move_customer_to_empty_table(
     let empty_tables: Vec<usize> = (0..max_tables)
         .filter(|idx| !occupied.contains(idx))
         .collect();
-    let Some(next) = random_index(empty_tables.len()).map(|idx| empty_tables[idx]) else {
+    let Some(next) = macroquad_toolkit::rng::choose(&empty_tables).copied() else {
         return;
     };
     let Some(previous) = game_state
@@ -424,8 +423,8 @@ fn random_guest_name() -> String {
         "Marnie", "Lark", "Penny", "Bram", "Sora", "Rin", "Nova", "Haze", "Felix", "Tara", "Lune",
         "Milo", "Ari", "Violet",
     ];
-    random_index(NAMES.len())
-        .map(|index| NAMES[index])
+    macroquad_toolkit::rng::choose(NAMES)
+        .copied()
         .unwrap_or("Guest")
         .to_string()
 }
@@ -443,8 +442,7 @@ fn steal_or_throw_dish(game_state: &mut GameState) -> Option<(String, String)> {
         })
         .collect();
 
-    let Some(station_color) = random_index(candidates.len()).map(|index| candidates[index].clone())
-    else {
+    let Some(station_color) = macroquad_toolkit::rng::choose(&candidates).cloned() else {
         return None;
     };
 
