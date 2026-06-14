@@ -9,6 +9,7 @@ use crate::data::{GameData, STATION_COLORS};
 use crate::engine::kitchen_pass_position;
 use crate::state::{CookingStation, GameState};
 use macroquad::prelude::*;
+use macroquad_toolkit::ui::draw_ui_text;
 
 pub(super) fn draw_kitchen(
     panel: Rect,
@@ -178,7 +179,7 @@ fn draw_recipe_station(
     let text_x = row.x + 88.0;
     draw_dish_plate(vec2(row.x + 48.0, row.y + row.h * 0.50), color, plate_r);
     draw_circle(row.x + 16.0, row.y + 18.0, 7.0, station_draw_color(color));
-    draw_text(
+    draw_ui_text(
         &dish_label(data, color),
         text_x,
         row.y + row.h * 0.36,
@@ -194,7 +195,7 @@ fn draw_recipe_station(
     } else {
         "Ready to cook"
     };
-    draw_text(
+    draw_ui_text(
         status,
         text_x,
         row.y + row.h * 0.63,

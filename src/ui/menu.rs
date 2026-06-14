@@ -2,6 +2,7 @@ use super::common::{draw_menu_button, BACKGROUND, MUTED, PANEL, TEXT};
 use super::types::{SettingsActions, TitleActions};
 use macroquad::prelude::*;
 use macroquad_toolkit::ui::draw_text_centered_in_box;
+use macroquad_toolkit::ui::draw_ui_text;
 
 fn draw_title_background(title_texture: Option<&Texture2D>) {
     let width = screen_width();
@@ -150,7 +151,7 @@ pub fn draw_settings_screen(fullscreen_enabled: bool) -> SettingsActions {
 
     draw_rectangle(0.0, 0.0, width, 96.0, Color::new(0.075, 0.065, 0.06, 1.0));
     draw_rectangle(0.0, 95.0, width, 1.0, Color::new(0.80, 0.50, 0.25, 0.55));
-    draw_text("Settings", 32.0, 60.0, 36.0, TEXT);
+    draw_ui_text("Settings", 32.0, 60.0, 36.0, TEXT);
 
     let content_w = width.min(720.0);
     let content_x = (width - content_w) * 0.5;
@@ -158,7 +159,7 @@ pub fn draw_settings_screen(fullscreen_enabled: bool) -> SettingsActions {
     let row_surface = macroquad_toolkit::ui::SurfaceStyle::new(PANEL)
         .with_border(1.0, Color::new(0.20, 0.20, 0.22, 1.0));
     macroquad_toolkit::ui::draw_surface(row, &row_surface);
-    draw_text("Fullscreen", row.x + 24.0, row.y + 48.0, 24.0, TEXT);
+    draw_ui_text("Fullscreen", row.x + 24.0, row.y + 48.0, 24.0, TEXT);
 
     let toggle = Rect::new(row.x + row.w - 142.0, row.y + 16.0, 112.0, 46.0);
     draw_toggle(toggle, fullscreen_enabled);

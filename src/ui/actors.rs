@@ -6,6 +6,7 @@ use super::types::UiActions;
 use crate::data::GameData;
 use crate::state::{Customer, GameState, PlayerActor};
 use macroquad::prelude::*;
+use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
 use std::collections::HashMap;
 
 fn customer_label(customer: &Customer, data: &GameData) -> String {
@@ -120,7 +121,7 @@ pub(super) fn draw_player_actor_scaled(pos: Vec2, player: &PlayerActor, scale: f
     if scale >= 0.85 {
         let label = "You";
         let font_size = (13.0 * scale).round() as u16;
-        let text_dim = measure_text(label, None, font_size, 1.0);
+        let text_dim = measure_ui_text(label, None, font_size, 1.0);
         draw_rectangle(
             pos.x - text_dim.width * 0.5 - 7.0,
             pos.y - 91.0 * scale,
@@ -128,7 +129,7 @@ pub(super) fn draw_player_actor_scaled(pos: Vec2, player: &PlayerActor, scale: f
             20.0 * scale,
             Color::new(0.02, 0.02, 0.025, 0.72),
         );
-        draw_text(
+        draw_ui_text(
             label,
             pos.x - text_dim.width * 0.5,
             pos.y - 77.0 * scale,
@@ -195,7 +196,7 @@ pub(super) fn draw_customer_sprite(
     }
 
     let label = customer_label(customer, data);
-    let text_dim = measure_text(&label, None, 16, 1.0);
+    let text_dim = measure_ui_text(&label, None, 16, 1.0);
     let label_w = text_dim.width + 22.0;
     draw_rectangle(
         pos.x - label_w * 0.5,
@@ -204,7 +205,7 @@ pub(super) fn draw_customer_sprite(
         38.0,
         Color::new(0.02, 0.02, 0.025, 0.78),
     );
-    draw_text(
+    draw_ui_text(
         &label,
         pos.x - label_w * 0.5 + 11.0,
         pos.y - 95.0,
@@ -222,7 +223,7 @@ pub(super) fn draw_customer_sprite(
     );
     if customer.is_seated {
         let order = ellipsize(&customer_order_text(customer, data), 27);
-        let order_dim = measure_text(&order, None, 13, 1.0);
+        let order_dim = measure_ui_text(&order, None, 13, 1.0);
         draw_rectangle(
             pos.x - order_dim.width * 0.5 - 8.0,
             pos.y - 64.0,
@@ -230,7 +231,7 @@ pub(super) fn draw_customer_sprite(
             18.0,
             Color::new(0.02, 0.02, 0.025, 0.70),
         );
-        draw_text(
+        draw_ui_text(
             &order,
             pos.x - order_dim.width * 0.5,
             pos.y - 51.0,

@@ -7,6 +7,7 @@ use super::types::UiActions;
 use crate::data::GameData;
 use crate::state::{GameState, ProgressionState};
 use macroquad::prelude::*;
+use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
 
 pub(super) fn draw_growth_panel(
     panel: Rect,
@@ -55,12 +56,12 @@ pub(super) fn draw_event_feed(rect: Rect, game: &GameState) {
         Color::new(0.045, 0.040, 0.048, 0.98),
     );
     draw_rectangle_lines(rect.x, rect.y, rect.w, rect.h, 1.0, LINE);
-    draw_text("Latest Events", rect.x + 16.0, rect.y + 26.0, 18.0, GOLD);
+    draw_ui_text("Latest Events", rect.x + 16.0, rect.y + 26.0, 18.0, GOLD);
 
     let mut x = rect.x + 150.0;
     for message in game.messages.iter().rev().take(5) {
         let text = ellipsize(message, 44);
-        let text_dim = measure_text(&text, None, 15, 1.0);
+        let text_dim = measure_ui_text(&text, None, 15, 1.0);
         let pill_w = (text_dim.width + 34.0).min(360.0);
         if x + pill_w > rect.x + rect.w - 14.0 {
             break;
@@ -68,7 +69,7 @@ pub(super) fn draw_event_feed(rect: Rect, game: &GameState) {
         draw_rectangle(x, rect.y + 7.0, pill_w, 28.0, CARD);
         draw_rectangle_lines(x, rect.y + 7.0, pill_w, 28.0, 1.0, LINE);
         draw_circle(x + 14.0, rect.y + 21.0, 5.0, ACCENT);
-        draw_text(&text, x + 26.0, rect.y + 26.0, 15.0, TEXT);
+        draw_ui_text(&text, x + 26.0, rect.y + 26.0, 15.0, TEXT);
         x += pill_w + 10.0;
     }
 }
@@ -82,7 +83,7 @@ fn draw_guest_card(
 ) {
     draw_card(card, "Guests");
     if game.customers.is_empty() {
-        draw_text(
+        draw_ui_text(
             "Waiting for arrivals",
             card.x + 12.0,
             card.y + 54.0,
@@ -100,14 +101,14 @@ fn draw_guest_card(
                 .map(|dish| station_draw_color(dish))
                 .unwrap_or(GOLD);
             draw_circle(card.x + 18.0, y - 5.0, 8.0, color);
-            draw_text(
+            draw_ui_text(
                 &ellipsize(&customer.display_name, 18),
                 card.x + 34.0,
                 y,
                 15.0,
                 TEXT,
             );
-            draw_text(
+            draw_ui_text(
                 if customer.is_seated {
                     "seated"
                 } else {
@@ -122,7 +123,7 @@ fn draw_guest_card(
     }
 
     let next_y = card.y + card.h - 58.0;
-    draw_text("Next Clientele", card.x + 12.0, next_y, 14.0, GOLD);
+    draw_ui_text("Next Clientele", card.x + 12.0, next_y, 14.0, GOLD);
     let mut locked_customer_types: Vec<_> = data
         .customer_types
         .iter()
@@ -136,14 +137,14 @@ fn draw_guest_card(
 
     if let Some(customer_type) = locked_customer_types.first() {
         let can_attract = can_afford_cost(game, &customer_type.unlock_cost);
-        draw_text(
+        draw_ui_text(
             &ellipsize(&customer_type.name.replace(" Girl", ""), 18),
             card.x + 12.0,
             next_y + 25.0,
             16.0,
             if can_attract { TEXT } else { MUTED },
         );
-        draw_text(
+        draw_ui_text(
             &ellipsize(&format_unlock_cost(&customer_type.unlock_cost), 22),
             card.x + 12.0,
             next_y + 43.0,
@@ -155,7 +156,7 @@ fn draw_guest_card(
         ui.attract_buttons
             .insert(customer_type.id.clone(), button_rect);
     } else {
-        draw_text(
+        draw_ui_text(
             "All known guests unlocked",
             card.x + 12.0,
             next_y + 25.0,
@@ -171,7 +172,7 @@ fn draw_upgrade_card(card: Rect, progression: &ProgressionState, ui: &mut UiActi
     let row_gap = ((card.h - 54.0) / 2.0).clamp(30.0, 48.0);
     for upgrade in progression.upgrades.iter().take(2) {
         let can_buy = progression.currency >= upgrade.cost && upgrade.level < upgrade.max_level;
-        draw_text(
+        draw_ui_text(
             &format!(
                 "{}  Lv. {}/{}",
                 ellipsize(&upgrade.name, 18),
@@ -183,7 +184,7 @@ fn draw_upgrade_card(card: Rect, progression: &ProgressionState, ui: &mut UiActi
             15.0,
             if can_buy { TEXT } else { MUTED },
         );
-        draw_text(
+        draw_ui_text(
             &format!("${}", upgrade.cost),
             card.x + 12.0,
             y + 17.0,
@@ -201,7 +202,7 @@ fn draw_pantry_card(card: Rect, game: &GameState) {
     draw_card(card, "Pantry");
     let ingredients = sorted_ingredient_lines(game);
     if ingredients.is_empty() {
-        draw_text(
+        draw_ui_text(
             "No harvested ingredients",
             card.x + 12.0,
             card.y + 62.0,
@@ -234,7 +235,7 @@ fn draw_pantry_card(card: Rect, game: &GameState) {
             9.0,
             Color::new(0.72, 0.48, 0.34, 1.0),
         );
-        draw_text(
+        draw_ui_text(
             &ellipsize(line, 9),
             slot.x + 31.0,
             slot.y + slot.h * 0.5 + 5.0,
@@ -271,7 +272,7 @@ fn draw_recipe_card(card: Rect, progression: &ProgressionState, ui: &mut UiActio
             (slot.h * 0.20).clamp(11.0, 16.0),
             if recipe.unlocked { SUCCESS } else { MUTED },
         );
-        draw_text(
+        draw_ui_text(
             &ellipsize(&recipe.name, 10),
             slot.x + 6.0,
             slot.y + slot.h - 10.0,

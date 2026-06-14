@@ -8,6 +8,7 @@ use crate::data::GameData;
 use crate::engine::{max_customer_count, restaurant_entrance_position, restaurant_table_position};
 use crate::state::{Customer, GameState, ProgressionState};
 use macroquad::prelude::*;
+use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
 use std::collections::HashMap;
 
 fn draw_floor_pattern(floor: Rect) {
@@ -70,7 +71,7 @@ fn draw_room_fixtures(floor: Rect) {
         Color::new(0.11, 0.075, 0.045, 1.0),
     );
     draw_rectangle_lines(counter.x, counter.y, counter.w, counter.h, 1.0, GOLD);
-    draw_text(
+    draw_ui_text(
         "Kitchen Pass",
         counter.x + 16.0,
         counter.y + 24.0,
@@ -159,7 +160,7 @@ fn draw_table(
         outline,
     );
     draw_circle(center.x, center.y, 14.0, Color::new(0.50, 0.27, 0.15, 1.0));
-    draw_text(
+    draw_ui_text(
         &format!("T{}", table_index + 1),
         center.x - 10.0,
         center.y + 5.0,
@@ -168,7 +169,7 @@ fn draw_table(
     );
 
     let Some(customer) = customer else {
-        draw_text("open", center.x - 16.0, center.y + 27.0, 13.0, MUTED);
+        draw_ui_text("open", center.x - 16.0, center.y + 27.0, 13.0, MUTED);
         return;
     };
 
@@ -254,7 +255,7 @@ fn draw_last_meal_lounge(floor: Rect, game: &GameState, data: &GameData) {
         Color::new(0.04, 0.035, 0.04, 1.0),
     );
     draw_circle_lines(lounge.x + lounge.w * 0.50, lounge.y + 70.0, 36.0, 1.5, GOLD);
-    draw_text(
+    draw_ui_text(
         "Last Meal Lounge",
         lounge.x + 14.0,
         lounge.y + 23.0,
@@ -271,7 +272,7 @@ fn draw_last_meal_lounge(floor: Rect, game: &GameState, data: &GameData) {
     } else {
         "locked".to_string()
     };
-    draw_text(
+    draw_ui_text(
         &status,
         lounge.x + 14.0,
         lounge.y + lounge.h - 39.0,
@@ -289,7 +290,7 @@ fn draw_last_meal_lounge(floor: Rect, game: &GameState, data: &GameData) {
             SKYBLUE,
         );
     } else {
-        draw_text(
+        draw_ui_text(
             "VIP threshold service",
             lounge.x + 14.0,
             lounge.y + lounge.h - 18.0,
@@ -339,7 +340,7 @@ pub(super) fn draw_dining_room(
         Color::new(0.04, 0.035, 0.04, 0.86),
     );
     draw_rectangle_lines(plaque.x, plaque.y, plaque.w, plaque.h, 1.0, LINE);
-    draw_text(
+    draw_ui_text(
         &format!(
             "Serving: {}",
             selected_text.unwrap_or_else(|| "cook, carry, then serve".to_string())
@@ -360,7 +361,7 @@ pub(super) fn draw_dining_room(
         Color::new(0.055, 0.045, 0.040, 1.0),
     );
     draw_rectangle_lines(entrance.x - 44.0, entrance.y - 28.0, 88.0, 56.0, 1.5, GOLD);
-    draw_text(
+    draw_ui_text(
         "Front Door",
         entrance.x - 34.0,
         entrance.y + 6.0,
@@ -409,8 +410,8 @@ pub(super) fn draw_dining_room(
 
     if game.customers.is_empty() {
         let text = "Waiting for guests";
-        let dim = measure_text(text, None, 18, 1.0);
-        draw_text(
+        let dim = measure_ui_text(text, None, 18, 1.0);
+        draw_ui_text(
             text,
             floor.x + (floor.w - dim.width) * 0.5,
             floor.y + 116.0,

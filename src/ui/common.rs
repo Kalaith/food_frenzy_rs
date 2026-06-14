@@ -5,6 +5,7 @@ use crate::engine::{
 use crate::state::{Customer, GameState, ProgressionState};
 use macroquad::prelude::*;
 use macroquad_toolkit::ui::{draw_text_centered_in_box, progress_bar};
+use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
 use std::collections::HashMap;
 
 pub(super) const BACKGROUND: Color = Color::new(0.035, 0.032, 0.038, 1.0);
@@ -86,8 +87,8 @@ pub(super) fn draw_panel(rect: Rect) {
 
 pub(super) fn draw_section_title(text: &str, x: f32, y: f32) {
     let title = text.to_uppercase();
-    let dim = measure_text(&title, None, 17, 1.0);
-    draw_text(&title, x, y, 17.0, GOLD);
+    let dim = measure_ui_text(&title, None, 17, 1.0);
+    draw_ui_text(&title, x, y, 17.0, GOLD);
     draw_line(x - 36.0, y - 7.0, x - 8.0, y - 7.0, 1.0, LINE);
     draw_line(
         x + dim.width + 8.0,
@@ -101,7 +102,7 @@ pub(super) fn draw_section_title(text: &str, x: f32, y: f32) {
 
 pub(super) fn draw_centered_section_title(text: &str, rect: Rect) {
     let title = text.to_uppercase();
-    let dim = measure_text(&title, None, 17, 1.0);
+    let dim = measure_ui_text(&title, None, 17, 1.0);
     let x = rect.x + (rect.w - dim.width) * 0.5;
     draw_section_title(&title, x, rect.y + 29.0);
 }
@@ -159,11 +160,11 @@ pub(super) fn draw_menu_button(rect: Rect, text: &str) {
 pub(super) fn draw_card(rect: Rect, title: &str) {
     let surface = macroquad_toolkit::ui::SurfaceStyle::new(CARD).with_border(1.0, LINE);
     macroquad_toolkit::ui::draw_surface(rect, &surface);
-    draw_text(title, rect.x + 12.0, rect.y + 25.0, 18.0, GOLD);
+    draw_ui_text(title, rect.x + 12.0, rect.y + 25.0, 18.0, GOLD);
 }
 
 pub(super) fn draw_tooltip(text: &str, center_x: f32, y: f32) {
-    let text_dim = measure_text(text, None, 14, 1.0);
+    let text_dim = measure_ui_text(text, None, 14, 1.0);
     let rect = Rect::new(
         center_x - text_dim.width * 0.5 - 10.0,
         y,
@@ -173,7 +174,7 @@ pub(super) fn draw_tooltip(text: &str, center_x: f32, y: f32) {
     let surface = macroquad_toolkit::ui::SurfaceStyle::new(Color::new(0.02, 0.02, 0.025, 0.86))
         .with_border(1.0, SKYBLUE);
     macroquad_toolkit::ui::draw_surface(rect, &surface);
-    draw_text(text, rect.x + 10.0, rect.y + 17.0, 14.0, TEXT);
+    draw_ui_text(text, rect.x + 10.0, rect.y + 17.0, 14.0, TEXT);
 }
 
 pub(super) fn draw_bar(
@@ -195,14 +196,14 @@ pub(super) fn draw_resource_tile(rect: Rect, label: &str, value: &str, accent: O
     let accent = accent.unwrap_or(GOLD);
     draw_circle(rect.x + 19.0, rect.y + rect.h * 0.5, 7.0, accent);
     draw_circle_lines(rect.x + 19.0, rect.y + rect.h * 0.5, 10.0, 1.0, GOLD);
-    draw_text(label, rect.x + 38.0, rect.y + 19.0, 13.0, MUTED);
-    draw_text(value, rect.x + 38.0, rect.y + 42.0, 22.0, TEXT);
+    draw_ui_text(label, rect.x + 38.0, rect.y + 19.0, 13.0, MUTED);
+    draw_ui_text(value, rect.x + 38.0, rect.y + 42.0, 22.0, TEXT);
 }
 
 pub(super) fn draw_row_value(label: &str, value: &str, rect: Rect, color: Color) {
-    draw_text(label, rect.x, rect.y + 18.0, 15.0, MUTED);
-    let value_dim = measure_text(value, None, 16, 1.0);
-    draw_text(
+    draw_ui_text(label, rect.x, rect.y + 18.0, 15.0, MUTED);
+    let value_dim = measure_ui_text(value, None, 16, 1.0);
+    draw_ui_text(
         value,
         rect.x + rect.w - value_dim.width,
         rect.y + 18.0,
