@@ -29,3 +29,10 @@ Keep guests fed, chain efficient service, and build enough score to prestige int
 ## Current Scope
 
 Playable restaurant loop with named recipes, station control, guest processing, scoring, rewards, and prestige pressure.
+# Practical Future Improvements
+
+- Add deterministic tests for kitchen queue order, dining timers, actor states, and growth progression across speed changes.
+- Separate actor animation from gameplay state so rendering cannot change restaurant simulation outcomes.
+- Move recipe, patience, reward, and upgrade tuning into small fixtures that support quick balance passes.
+- Add stress scenarios for peak dining load to catch queue, seating, and order-delivery regressions.
+
