@@ -134,7 +134,7 @@ pub struct Customer {
 }
 
 impl Customer {
-    pub fn traits<'a>(&self, data: &'a GameData) -> CustomerSpecialTraits {
+    pub fn traits(&self, data: &GameData) -> CustomerSpecialTraits {
         data.customer_type_by_id(&self.customer_type)
             .and_then(|customer_type| customer_type.special_traits.clone())
             .unwrap_or_default()

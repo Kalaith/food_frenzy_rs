@@ -179,10 +179,10 @@ pub fn handle_keyboard_shortcuts(
 
 pub fn clear_empty_selection(selected_station: &mut Option<String>, game_state: &mut GameState) {
     let should_clear = selected_station.as_ref().is_some_and(|station| {
-        !game_state
+        game_state
             .cooking_stations
             .get(station)
-            .is_some_and(|station| !station.dishes.is_empty())
+            .is_none_or(|station| station.dishes.is_empty())
     });
     if should_clear {
         *selected_station = None;

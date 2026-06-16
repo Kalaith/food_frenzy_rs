@@ -1,5 +1,7 @@
 //! Feast Frenzy migration to Macroquad.
 
+#![allow(clippy::too_many_arguments)]
+
 mod app;
 mod assets;
 mod commands;

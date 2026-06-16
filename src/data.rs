@@ -11,7 +11,7 @@ const GAME_BALANCE_JSON: &str = include_str!("../assets/data/game_balance.json")
 
 pub const STATION_COLORS: [&str; 4] = ["blue", "green", "yellow", "red"];
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CustomerSpecialTraits {
     #[serde(default)]
     pub low_appetite: bool,
@@ -29,21 +29,6 @@ pub struct CustomerSpecialTraits {
     pub high_yield: bool,
     #[serde(default)]
     pub throws_food: bool,
-}
-
-impl Default for CustomerSpecialTraits {
-    fn default() -> Self {
-        Self {
-            low_appetite: false,
-            can_wander: false,
-            multiplies_on_process: false,
-            fast_spoilage: false,
-            can_steal_food: false,
-            can_eat_waste: false,
-            high_yield: false,
-            throws_food: false,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -64,7 +64,7 @@ pub fn max_satisfaction_for_customer(
 pub fn satisfaction_decay_rate(data: &GameData, progression: &ProgressionState) -> f32 {
     (data.balance.satisfaction_decay_rate
         * progression.get_effect("satisfaction_decay_multiplier", 1.0) as f32)
-        .max(0.05) as f32
+        .max(0.05)
 }
 
 pub fn patience_multiplier(progression: &ProgressionState) -> f32 {
@@ -143,9 +143,7 @@ pub fn vip_meat_gain(customer: &Customer, data: &GameData, progression: &Progres
 }
 
 pub fn vip_points(customer: &Customer, data: &GameData) -> i64 {
-    let points = (data.balance.vip_points_per_deliciousness * f64::from(customer.deliciousness))
-        .floor() as i64;
-    points
+    (data.balance.vip_points_per_deliciousness * f64::from(customer.deliciousness)).floor() as i64
 }
 
 pub fn recipe_value_multiplier(progression: &ProgressionState) -> f64 {
@@ -179,14 +177,8 @@ pub fn kitchen_pass_position() -> (f32, f32) {
 
 pub fn restaurant_table_position(table_index: usize, max_tables: usize) -> (f32, f32) {
     let max_tables = max_tables.max(1);
-    let columns = if max_tables <= 2 {
-        2
-    } else if max_tables <= 4 {
-        2
-    } else {
-        3
-    };
-    let rows = ((max_tables + columns - 1) / columns).max(1);
+    let columns = if max_tables <= 4 { 2 } else { 3 };
+    let rows = max_tables.div_ceil(columns).max(1);
     let column = table_index % columns;
     let row = table_index / columns;
     let usable_w = RESTAURANT_FLOOR_WIDTH - 300.0;

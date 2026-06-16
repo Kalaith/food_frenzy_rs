@@ -266,10 +266,7 @@ impl ProgressionState {
             .filter(|item| item.unlocked)
             .count();
         let capacity_reward = (self.feeding_capacity_bonus / 20).max(0);
-        std::cmp::max(
-            1,
-            i64::try_from(score_reward + achievement_reward as i64 + capacity_reward).unwrap_or(1),
-        )
+        (score_reward + achievement_reward as i64 + capacity_reward).max(1)
     }
 
     pub fn prestige(&mut self, data: &GameData) {

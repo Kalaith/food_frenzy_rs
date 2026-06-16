@@ -171,7 +171,7 @@ fn update_satisfaction_decay(
     }
 
     let decay_rate = satisfaction_decay_rate(data, progression);
-    let decay_tick = decay_interval as f32;
+    let decay_tick = decay_interval;
     while timers.decay_accum_ms >= decay_tick {
         timers.decay_accum_ms -= decay_tick;
         for customer in &mut game_state.customers {
@@ -195,7 +195,7 @@ fn update_traits(
 
     let max_tables = max_customer_count(data, progression);
     let mut occupied = occupied_tables(game_state, max_tables);
-    let trait_tick = tick as f32;
+    let trait_tick = tick;
     while timers.trait_accum_ms >= trait_tick {
         timers.trait_accum_ms -= trait_tick;
         for index in 0..game_state.customers.len() {
@@ -442,9 +442,7 @@ fn steal_or_throw_dish(game_state: &mut GameState) -> Option<(String, String)> {
         })
         .collect();
 
-    let Some(station_color) = macroquad_toolkit::rng::choose(&candidates).cloned() else {
-        return None;
-    };
+    let station_color = macroquad_toolkit::rng::choose(&candidates).cloned()?;
 
     let station = game_state.cooking_stations.get_mut(&station_color)?;
     if station.dishes.is_empty() {
