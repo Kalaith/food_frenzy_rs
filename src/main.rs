@@ -16,15 +16,10 @@ mod state;
 mod ui;
 
 use macroquad::prelude::*;
+use macroquad_toolkit::capture;
 
 fn window_conf() -> Conf {
-    Conf {
-        window_title: "Feast Frenzy".to_owned(),
-        window_width: 1920,
-        window_height: 1080,
-        window_resizable: true,
-        ..Default::default()
-    }
+    capture::capture_window_conf("FOOD_FRENZY", "Feast Frenzy", 1920, 1080)
 }
 
 #[macroquad::main(window_conf)]

@@ -13,6 +13,7 @@ use crate::ui::{
     draw_and_collect_hitboxes, draw_settings_screen, draw_title_screen, SettingsAction, TitleAction,
 };
 use macroquad::prelude::*;
+use macroquad_toolkit::capture;
 use std::collections::HashMap;
 
 const SAVE_INTERVAL_MS: f32 = 5_000.0;
@@ -40,6 +41,20 @@ struct App {
 
 pub async fn run() {
     let mut app = App::load().await;
+
+    // Screenshot harness: when FOOD_FRENZY_CAPTURE_PATH is set, seed a scene,
+    // simulate deterministic frames, write a PNG, and exit. App::tick() has no
+    // dt parameter (it reads get_frame_time() internally), so the capture
+    // closure ignores the fixed timestep the harness would otherwise pass.
+    if let Some(config) = capture::CaptureConfig::from_env("FOOD_FRENZY") {
+        app.begin_capture_scene(&config.scene);
+        capture::run_capture(&config, |_dt| {
+            app.tick();
+        })
+        .await;
+        return;
+    }
+
     loop {
         app.tick();
         next_frame().await;
@@ -67,6 +82,18 @@ impl App {
             app_screen: AppScreen::Title,
             title_message: String::new(),
             fullscreen_enabled: false,
+        }
+    }
+
+    /// Seed a specific scene for the screenshot harness.
+    fn begin_capture_scene(&mut self, scene: &str) {
+        match scene {
+            "title" => self.app_screen = AppScreen::Title,
+            "settings" => self.app_screen = AppScreen::Settings,
+            _ => {
+                // Default: jump straight into gameplay on a fresh save.
+                self.start_new_game();
+            }
         }
     }
 
