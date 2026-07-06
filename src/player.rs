@@ -221,7 +221,7 @@ pub fn interact_with_nearest_customer(
         return false;
     }
 
-    let Some(customer_id) = nearest_servable_customer(game_state) else {
+    let Some(customer_id) = nearest_servable_customer(game_state, &station_color) else {
         return false;
     };
     if serve_customer(
@@ -312,7 +312,7 @@ fn nearest_player_station(game_state: &GameState) -> Option<&'static str> {
         .map(|(color, _)| color)
 }
 
-fn nearest_servable_customer(game_state: &GameState) -> Option<u32> {
+fn nearest_servable_customer(game_state: &GameState, station_color: &str) -> Option<u32> {
     if game_state.player.x < 0.0 {
         return None;
     }
@@ -320,7 +320,7 @@ fn nearest_servable_customer(game_state: &GameState) -> Option<u32> {
     game_state
         .customers
         .iter()
-        .filter(|customer| customer.is_seated)
+        .filter(|customer| customer.is_seated && customer.next_course_for(station_color).is_some())
         .filter_map(|customer| {
             let dx = game_state.player.x - customer.floor_x;
             let dy = game_state.player.y - customer.floor_y;

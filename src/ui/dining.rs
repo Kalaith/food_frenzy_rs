@@ -196,11 +196,13 @@ fn draw_table(
         patience_color(patience),
     );
 
-    let can_serve = selected_station
-        .as_ref()
-        .and_then(|station| game.cooking_stations.get(station))
-        .is_some_and(|station| !station.dishes.is_empty())
-        && customer.is_seated;
+    let can_serve = customer.is_seated
+        && selected_station.as_ref().is_some_and(|color| {
+            game.cooking_stations
+                .get(color)
+                .is_some_and(|station| !station.dishes.is_empty())
+                && customer.next_course_for(color).is_some()
+        });
     if can_serve {
         let serve_rect = Rect::new(rect.x + rect.w - 62.0, rect.y + 12.0, 50.0, 24.0);
         draw_button(serve_rect, "Serve", true, false);
@@ -291,7 +293,7 @@ fn draw_last_meal_lounge(floor: Rect, game: &GameState, data: &GameData) {
         );
     } else {
         draw_ui_text(
-            "VIP threshold service",
+            "Ready after repeat visits",
             lounge.x + 14.0,
             lounge.y + lounge.h - 18.0,
             12.0,

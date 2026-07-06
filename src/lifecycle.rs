@@ -141,6 +141,11 @@ fn ensure_compatibility(
             customer.floor_y = target_y;
             customer.is_seated = true;
         }
+        // Saves from before the course system have no order; give them one so
+        // they can be served and leave instead of getting stuck.
+        if customer.order.is_empty() {
+            customer.order = crate::engine::roll_order(data, &customer.customer_type);
+        }
     }
 
     if game_state.player.carried_station.is_none()

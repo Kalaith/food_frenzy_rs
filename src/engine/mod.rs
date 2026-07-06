@@ -1,7 +1,7 @@
 //! Core gameplay helpers used by the Macroquad simulation loop.
 
 use crate::data::{CustomerSpecialTraits, DishType, GameBalance, GameData};
-use crate::state::{Customer, ProgressionState, Satisfaction};
+use crate::state::{Course, Customer, ProgressionState, Satisfaction};
 
 pub const RETURNING_GUEST_CHANCE: f64 = 0.65;
 pub const FOX_STEAL_CHANCE: f64 = 0.35;
@@ -106,9 +106,73 @@ pub fn overfeed_multiplier(data: &GameData, traits: &CustomerSpecialTraits) -> f
     }
 }
 
+/// A guest is ready for the Last Meal Lounge once they have been fully served
+/// on enough prior visits (fattened up over time), not from a single sitting.
 pub fn can_process_customer(customer: &Customer, data: &GameData) -> bool {
-    customer.deliciousness >= data.balance.vip_deliciousness_threshold
-        && customer.total_satisfaction >= data.balance.vip_satisfaction_threshold
+    customer.times_fed >= data.balance.visits_until_ready
+}
+
+/// Build a guest's order for this visit: 1-3 distinct courses, favouring the
+/// dishes the customer type prefers, then filling from the rest of the menu.
+pub fn roll_order(data: &GameData, customer_type_id: &str) -> Vec<Course> {
+    let mut colors: Vec<String> = Vec::new();
+    if let Some(customer_type) = data.customer_type_by_id(customer_type_id) {
+        let mut preferred = customer_type.preferred_dishes.clone();
+        shuffle(&mut preferred);
+        colors.extend(preferred);
+    }
+    let mut rest: Vec<String> = data
+        .dish_types
+        .iter()
+        .map(|dish| dish.color.clone())
+        .filter(|color| !colors.contains(color))
+        .collect();
+    shuffle(&mut rest);
+    colors.extend(rest);
+
+    let min = data.balance.min_courses.max(1) as i32;
+    let max = (data.balance.max_courses as i32).max(min);
+    let available = (colors.len() as i32).max(1);
+    let upper = max.min(available);
+    let count = if upper <= min {
+        upper
+    } else {
+        macroquad_toolkit::rng::gen_range(min, upper + 1)
+    };
+
+    let chosen: Vec<String> = colors.into_iter().take(count.max(1) as usize).collect();
+    let total = chosen.len();
+    chosen
+        .into_iter()
+        .enumerate()
+        .map(|(index, color)| Course {
+            color,
+            label: course_label(index, total).to_string(),
+            served: false,
+        })
+        .collect()
+}
+
+fn course_label(index: usize, total: usize) -> &'static str {
+    match (index, total) {
+        (_, 1) => "Main",
+        (0, 2) => "Entrée",
+        (_, 2) => "Dessert",
+        (0, _) => "Entrée",
+        (1, _) => "Main",
+        _ => "Dessert",
+    }
+}
+
+fn shuffle<T>(items: &mut [T]) {
+    let len = items.len();
+    if len < 2 {
+        return;
+    }
+    for i in (1..len).rev() {
+        let j = macroquad_toolkit::rng::gen_range(0i32, (i + 1) as i32) as usize;
+        items.swap(i, j);
+    }
 }
 
 pub fn serving_points(data: &GameData, satisfaction_gain: f32, preferred: bool) -> i64 {
@@ -122,9 +186,29 @@ pub fn serving_points(data: &GameData, satisfaction_gain: f32, preferred: bool) 
     total.max(0.0).floor() as i64
 }
 
+/// Cash a single served dish adds to the guest's tab. Preferred dishes are worth
+/// more, so serving what a guest actually craves pays off.
+pub fn serving_bill(data: &GameData, preferred: bool) -> i64 {
+    let base = data.balance.dish_bill_value.max(0) as f64;
+    let value = if preferred {
+        base * data.balance.preferred_bill_multiplier.max(0.0)
+    } else {
+        base
+    };
+    value.floor().max(0.0) as i64
+}
+
+/// Bonus tip paid on top of the tab when a guest leaves fully satisfied.
+pub fn satisfied_tip(data: &GameData, bill: i64) -> i64 {
+    let tip = (bill as f64) * data.balance.satisfied_tip_rate.max(0.0);
+    tip.floor().max(0.0) as i64
+}
+
 pub fn vip_meat_gain(customer: &Customer, data: &GameData, progression: &ProgressionState) -> i64 {
     let traits = customer.traits(data);
-    let base = (customer.total_satisfaction / 20.0).floor() + customer.deliciousness.floor();
+    // Yield scales with how plump the guest got over their visits, plus a little
+    // for the flavour built up from preferred dishes this sitting.
+    let base = customer.times_fed as f32 + customer.deliciousness.floor();
     let bonus = if traits.multiplies_on_process {
         2.0
     } else {

@@ -1,10 +1,10 @@
 use super::common::{
     customer_fallback_color, dish_label, draw_bar, draw_button, draw_tooltip, ellipsize,
-    floor_to_screen, player_near_customer, station_draw_color, LINE, TEXT,
+    floor_to_screen, player_near_customer, station_draw_color, GOLD, LINE, TEXT,
 };
 use super::types::UiActions;
 use crate::data::GameData;
-use crate::state::{Customer, GameState, PlayerActor};
+use crate::state::{Course, Customer, GameState, PlayerActor};
 use macroquad::prelude::*;
 use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
 use std::collections::HashMap;
@@ -17,22 +17,64 @@ fn customer_label(customer: &Customer, data: &GameData) -> String {
     format!("{} / {}", customer.display_name, customer_type)
 }
 
-fn customer_order_text(customer: &Customer, data: &GameData) -> String {
-    data.customer_type_by_id(&customer.customer_type)
-        .map(|customer_type| {
-            let labels: Vec<String> = customer_type
-                .preferred_dishes
-                .iter()
-                .take(2)
-                .map(|color| dish_label(data, color))
-                .collect();
-            if labels.is_empty() {
-                "Any house plate".to_string()
+/// Draw the guest's ordered courses as a row of chips (dish name + colour dot),
+/// dimmed and check-marked once served so the player can read the order at a
+/// glance.
+fn draw_order_courses(customer: &Customer, data: &GameData, pos: Vec2) {
+    if customer.order.is_empty() {
+        return;
+    }
+    let font = 12.0;
+    let chip_h = 17.0;
+    let gap = 4.0;
+    let mut widths = Vec::with_capacity(customer.order.len());
+    let mut total_w = 0.0;
+    for course in &customer.order {
+        let text = course_chip_text(course, data);
+        let w = measure_ui_text(&text, None, font as u16, 1.0).width + 22.0;
+        widths.push((text, w));
+        total_w += w;
+    }
+    total_w += gap * (customer.order.len() as f32 - 1.0);
+
+    let mut x = pos.x - total_w * 0.5;
+    let y = pos.y - 66.0;
+    for (course, (text, w)) in customer.order.iter().zip(widths) {
+        draw_rectangle(
+            x,
+            y,
+            w,
+            chip_h,
+            if course.served {
+                Color::new(0.05, 0.10, 0.05, 0.80)
             } else {
-                labels.join(" + ")
-            }
-        })
-        .unwrap_or_else(|| "Any house plate".to_string())
+                Color::new(0.02, 0.02, 0.025, 0.80)
+            },
+        );
+        draw_circle(
+            x + 8.0,
+            y + chip_h * 0.5,
+            4.0,
+            station_draw_color(&course.color),
+        );
+        draw_ui_text(
+            &text,
+            x + 16.0,
+            y + 13.0,
+            font,
+            if course.served { LIME } else { TEXT },
+        );
+        x += w + gap;
+    }
+}
+
+fn course_chip_text(course: &Course, data: &GameData) -> String {
+    let dish = ellipsize(&dish_label(data, &course.color), 14);
+    if course.served {
+        format!("{} {dish}", "OK")
+    } else {
+        format!("{}: {dish}", course.label)
+    }
 }
 
 pub(super) fn draw_player_actor(pos: Vec2, player: &PlayerActor) {
@@ -163,11 +205,13 @@ pub(super) fn draw_customer_sprite(
 ) {
     let pos = floor_to_screen(floor, customer.floor_x, customer.floor_y);
     let sprite_rect = Rect::new(pos.x - 34.0, pos.y - 82.0, 68.0, 80.0);
-    let can_serve = selected_station
-        .as_ref()
-        .and_then(|station| game.cooking_stations.get(station))
-        .is_some_and(|station| !station.dishes.is_empty())
-        && customer.is_seated;
+    let can_serve = customer.is_seated
+        && selected_station.as_ref().is_some_and(|color| {
+            game.cooking_stations
+                .get(color)
+                .is_some_and(|station| !station.dishes.is_empty())
+                && customer.next_course_for(color).is_some()
+        });
 
     draw_circle(
         pos.x,
@@ -221,23 +265,25 @@ pub(super) fn draw_customer_sprite(
         customer.max_satisfaction.total(),
         LIME,
     );
-    if customer.is_seated {
-        let order = ellipsize(&customer_order_text(customer, data), 27);
-        let order_dim = measure_ui_text(&order, None, 13, 1.0);
+    if customer.bill > 0 {
+        let tab = format!("${}", customer.bill);
+        let tab_dim = measure_ui_text(&tab, None, 14, 1.0);
         draw_rectangle(
-            pos.x - order_dim.width * 0.5 - 8.0,
-            pos.y - 64.0,
-            order_dim.width + 16.0,
+            pos.x + 54.0,
+            pos.y - 78.0,
+            tab_dim.width + 12.0,
             18.0,
-            Color::new(0.02, 0.02, 0.025, 0.70),
+            Color::new(0.02, 0.02, 0.025, 0.78),
         );
-        draw_ui_text(
-            &order,
-            pos.x - order_dim.width * 0.5,
-            pos.y - 51.0,
-            13.0,
-            LIGHTGRAY,
-        );
+        draw_ui_text(&tab, pos.x + 60.0, pos.y - 65.0, 14.0, GOLD);
+    }
+    if customer.depart_timer_ms > 0.0 {
+        draw_tooltip("Paying up...", pos.x, pos.y - 128.0);
+    } else if customer.is_seated && crate::engine::can_process_customer(customer, data) {
+        draw_tooltip("Ready for the lounge", pos.x, pos.y - 128.0);
+    }
+    if customer.is_seated {
+        draw_order_courses(customer, data, pos);
     }
 
     if can_serve {

@@ -108,6 +108,16 @@ impl Default for PlayerActor {
     }
 }
 
+/// One course a guest ordered (a dish color plus a display label such as
+/// "Entrée" / "Main" / "Dessert"), and whether it has been served yet.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Course {
+    pub color: String,
+    pub label: String,
+    #[serde(default)]
+    pub served: bool,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Customer {
     pub id: u32,
@@ -131,6 +141,18 @@ pub struct Customer {
     pub target_y: f32,
     #[serde(default)]
     pub is_seated: bool,
+    /// Running tab the guest pays in Cash when they leave the restaurant.
+    #[serde(default)]
+    pub bill: i64,
+    /// Countdown before a guest who finished their order gets up to pay and leave.
+    #[serde(default)]
+    pub depart_timer_ms: f32,
+    /// The 1-3 courses this guest wants this visit.
+    #[serde(default)]
+    pub order: Vec<Course>,
+    /// How many previous visits this guest was fully served (fattening progress).
+    #[serde(default)]
+    pub times_fed: u32,
 }
 
 impl Customer {
@@ -142,11 +164,23 @@ impl Customer {
 
     pub fn refresh_totals(&mut self) {
         self.total_satisfaction = self.satisfaction.total();
-        self.overfed = self.total_satisfaction
-            > self.max_satisfaction.blue
-                + self.max_satisfaction.green
-                + self.max_satisfaction.yellow
-                + self.max_satisfaction.red;
+        self.overfed = self.total_satisfaction > self.max_satisfaction.total();
+    }
+
+    /// Index of the next course this guest is waiting on for `color`, if any.
+    pub fn next_course_for(&self, color: &str) -> Option<usize> {
+        self.order
+            .iter()
+            .position(|course| !course.served && course.color == color)
+    }
+
+    /// True once the guest has an order and every course has been served.
+    pub fn order_complete(&self) -> bool {
+        !self.order.is_empty() && self.order.iter().all(|course| course.served)
+    }
+
+    pub fn courses_served(&self) -> usize {
+        self.order.iter().filter(|course| course.served).count()
     }
 }
 
@@ -157,6 +191,8 @@ pub struct GuestRecord {
     pub customer_type: String,
     pub visits: u32,
     pub feedings: u32,
+    #[serde(default)]
+    pub satisfied_visits: u32,
     pub processed_count: u32,
     pub last_seen_at: u64,
 }
@@ -183,6 +219,7 @@ impl GuestState {
             customer_type: customer_type.to_string(),
             visits: 0,
             feedings: 0,
+            satisfied_visits: 0,
             processed_count: 0,
             last_seen_at: now,
         };
@@ -203,6 +240,7 @@ impl GuestState {
             .iter()
             .filter(|guest| {
                 guest.feedings > 0
+                    && guest.processed_count == 0
                     && !excluded.contains(&guest.id)
                     && unlocked.contains(&guest.customer_type)
             })
@@ -220,6 +258,12 @@ impl GuestState {
     pub fn record_guest_fed(&mut self, guest_id: &str) {
         self.record_guest_touch(guest_id, |guest| {
             guest.feedings = guest.feedings.saturating_add(1);
+        });
+    }
+
+    pub fn record_guest_satisfied_visit(&mut self, guest_id: &str) {
+        self.record_guest_touch(guest_id, |guest| {
+            guest.satisfied_visits = guest.satisfied_visits.saturating_add(1);
         });
     }
 

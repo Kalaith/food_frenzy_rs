@@ -1,8 +1,9 @@
 use crate::data::GameData;
 use crate::engine::{
     chance, max_customer_count, max_satisfaction_for_customer, restaurant_entrance_position,
-    restaurant_table_position, satisfaction_decay_rate, spawn_interval_ms, CAN_WANDER_CHANCE,
-    CUSTOMER_WALK_SPEED, FOX_STEAL_CHANCE, MONKEY_THROW_CHANCE, RETURNING_GUEST_CHANCE,
+    restaurant_table_position, satisfaction_decay_rate, satisfied_tip, spawn_interval_ms,
+    CAN_WANDER_CHANCE, CUSTOMER_WALK_SPEED, FOX_STEAL_CHANCE, MONKEY_THROW_CHANCE,
+    RETURNING_GUEST_CHANCE,
 };
 use crate::gameplay::dish_display_name;
 use crate::player::update_player_movement;
@@ -33,6 +34,7 @@ pub fn update_game_world(
     );
     update_customer_movement(dt_ms, data, progression_state, game_state);
     update_player_movement(dt_ms, game_state);
+    update_departures(dt_ms, data, game_state, progression_state, guest_state);
     update_patience(data, game_state, progression_state, timers, now_ms);
     update_satisfaction_decay(data, game_state, progression_state, timers);
     update_traits(data, game_state, timers, progression_state);
@@ -140,18 +142,91 @@ fn update_patience(
             continue;
         }
 
-        let before = game_state.customers.len();
+        for id in &removed_ids {
+            let Some(customer) = game_state.customers.iter().find(|item| item.id == *id) else {
+                continue;
+            };
+            let paid = customer.bill.max(0);
+            let name = customer.display_name.clone();
+            let served = customer.courses_served();
+            let ordered = customer.order.len();
+            progression.add_currency(paid);
+            progression.record_customer_lost();
+            if paid > 0 {
+                game_state.add_message(format!(
+                    "{name} left disappointed ({served}/{ordered} courses), paid ${paid}."
+                ));
+            } else {
+                game_state.add_message(format!("{name} left disappointed without eating."));
+            }
+        }
+
         game_state
             .customers
             .retain(|customer| !removed_ids.contains(&customer.id));
-        let lost = before.saturating_sub(game_state.customers.len());
-        if lost > 0 {
-            game_state.combo = 0;
-            for _ in 0..lost {
-                progression.record_customer_lost();
-            }
-            game_state.add_message(format!("{lost} customers left from impatience."));
+        game_state.combo = 0;
+    }
+}
+
+/// Guests who have eaten every course of their order finish up, settle their
+/// tab (plus a tip), and leave — freeing the table and banking a satisfied
+/// visit toward the day they are plump enough for the Last Meal Lounge.
+fn update_departures(
+    dt_ms: f32,
+    data: &GameData,
+    game_state: &mut GameState,
+    progression: &mut ProgressionState,
+    guest_state: &mut GuestState,
+) {
+    let dwell = data.balance.content_dwell_ms.max(0.0);
+    let mut departed = Vec::new();
+    for customer in &mut game_state.customers {
+        if !(customer.is_seated && customer.order_complete()) {
+            customer.depart_timer_ms = 0.0;
+            continue;
         }
+
+        if customer.depart_timer_ms <= 0.0 {
+            customer.depart_timer_ms = dwell.max(1.0);
+        }
+        customer.depart_timer_ms -= dt_ms;
+        if customer.depart_timer_ms <= 0.0 {
+            departed.push(customer.id);
+        }
+    }
+
+    if departed.is_empty() {
+        return;
+    }
+
+    let mut messages = Vec::new();
+    for id in &departed {
+        let Some(customer) = game_state.customers.iter().find(|item| item.id == *id) else {
+            continue;
+        };
+        let bill = customer.bill.max(0);
+        let tip = satisfied_tip(data, bill);
+        let paid = bill.saturating_add(tip);
+        progression.add_currency(paid);
+        guest_state.record_guest_satisfied_visit(&customer.guest_id);
+        let fed = customer.times_fed.saturating_add(1);
+        let ready_hint = if fed >= data.balance.visits_until_ready {
+            " Ready for the lounge next visit."
+        } else {
+            ""
+        };
+        messages.push(format!(
+            "{} left full and paid ${paid} (${bill} + ${tip} tip).{ready_hint}",
+            customer.display_name
+        ));
+    }
+
+    game_state
+        .customers
+        .retain(|customer| !departed.contains(&customer.id));
+    game_state.combo = game_state.combo.saturating_add(1);
+    for message in messages {
+        game_state.add_message(message);
     }
 }
 
@@ -262,6 +337,8 @@ fn try_spawn_customer(
     let customer_id = game_state.next_customer_id();
     let (floor_x, floor_y) = restaurant_entrance_position();
     let (target_x, target_y) = restaurant_table_position(table_index, max_customers);
+    let order = crate::engine::roll_order(data, &customer_type.id);
+    let times_fed = guest_record.satisfied_visits;
     game_state.customers.push(Customer {
         id: customer_id,
         guest_id: guest_record.id.clone(),
@@ -279,13 +356,25 @@ fn try_spawn_customer(
         target_x,
         target_y,
         is_seated: false,
+        bill: 0,
+        depart_timer_ms: 0.0,
+        order,
+        times_fed,
     });
     guest_state.record_guest_visit(&guest_record.id);
-    game_state.add_message(format!(
-        "{} arrived at table {}.",
-        guest_record.name,
-        table_index + 1
-    ));
+    if times_fed >= data.balance.visits_until_ready {
+        game_state.add_message(format!(
+            "{} returns plump and ready for the Last Meal Lounge!",
+            guest_record.name
+        ));
+    } else {
+        game_state.add_message(format!(
+            "{} arrived at table {} (visit {}).",
+            guest_record.name,
+            table_index + 1,
+            times_fed + 1
+        ));
+    }
 
     true
 }
@@ -450,4 +539,94 @@ fn steal_or_throw_dish(game_state: &mut GameState) -> Option<(String, String)> {
     }
     let dish = station.dishes.remove(0);
     Some((station_color, dish))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::state::{Course, Satisfaction};
+
+    fn seated_customer(id: u32, bill: i64, order: Vec<Course>, times_fed: u32) -> Customer {
+        Customer {
+            id,
+            guest_id: format!("guest-{id}"),
+            display_name: "Test".to_string(),
+            customer_type: "pig".to_string(),
+            satisfaction: Satisfaction::default(),
+            max_satisfaction: Satisfaction {
+                blue: 40.0,
+                green: 40.0,
+                yellow: 40.0,
+                red: 40.0,
+            },
+            deliciousness: 1.0,
+            total_satisfaction: 0.0,
+            overfed: false,
+            table_index: 0,
+            arrived_at_ms: 0.0,
+            floor_x: 0.0,
+            floor_y: 0.0,
+            target_x: 0.0,
+            target_y: 0.0,
+            is_seated: true,
+            bill,
+            depart_timer_ms: 0.0,
+            order,
+            times_fed,
+        }
+    }
+
+    fn course(color: &str, served: bool) -> Course {
+        Course {
+            color: color.to_string(),
+            label: "Main".to_string(),
+            served,
+        }
+    }
+
+    #[test]
+    fn guest_pays_bill_and_tip_once_order_is_complete() {
+        let data = GameData::load();
+        let mut game_state = GameState::new(&data);
+        let mut progression = ProgressionState::from_game_data(&data);
+        // Empty guest list: the satisfied-visit bookkeeping is a no-op here, which
+        // keeps the test off macroquad's time API (unavailable headless).
+        let mut guest_state = GuestState::new();
+        game_state
+            .customers
+            .push(seated_customer(1, 20, vec![course("blue", true), course("red", true)], 0));
+
+        let dt = data.balance.content_dwell_ms + 100.0;
+        update_departures(dt, &data, &mut game_state, &mut progression, &mut guest_state);
+
+        assert!(game_state.customers.is_empty(), "guest should have left");
+        let tip = crate::engine::satisfied_tip(&data, 20);
+        assert_eq!(progression.currency, 20 + tip);
+    }
+
+    #[test]
+    fn guest_with_unserved_course_stays_seated() {
+        let data = GameData::load();
+        let mut game_state = GameState::new(&data);
+        let mut progression = ProgressionState::from_game_data(&data);
+        let mut guest_state = GuestState::new();
+        game_state
+            .customers
+            .push(seated_customer(1, 12, vec![course("blue", true), course("red", false)], 0));
+
+        let dt = data.balance.content_dwell_ms + 100.0;
+        update_departures(dt, &data, &mut game_state, &mut progression, &mut guest_state);
+
+        assert_eq!(game_state.customers.len(), 1, "order not finished, guest stays");
+        assert_eq!(progression.currency, 0);
+    }
+
+    #[test]
+    fn readiness_is_reached_after_enough_fed_visits() {
+        let data = GameData::load();
+        let below = seated_customer(1, 0, vec![course("blue", false)], data.balance.visits_until_ready - 1);
+        let ready = seated_customer(2, 0, vec![course("blue", false)], data.balance.visits_until_ready);
+        assert!(!crate::engine::can_process_customer(&below, &data));
+        assert!(crate::engine::can_process_customer(&ready, &data));
+    }
 }

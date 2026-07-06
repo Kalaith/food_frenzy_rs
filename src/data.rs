@@ -126,13 +126,55 @@ pub struct GameBalance {
     pub special_table_process_time: f32,
     pub cooking_slots_limit: usize,
     pub starting_regular_ingredients: i64,
+    #[serde(default = "default_dish_bill_value")]
+    pub dish_bill_value: i64,
+    #[serde(default = "default_preferred_bill_multiplier")]
+    pub preferred_bill_multiplier: f64,
+    #[serde(default = "default_satisfied_tip_rate")]
+    pub satisfied_tip_rate: f64,
+    #[serde(default = "default_content_dwell_ms")]
+    pub content_dwell_ms: f32,
+    #[serde(default = "default_min_courses")]
+    pub min_courses: u32,
+    #[serde(default = "default_max_courses")]
+    pub max_courses: u32,
+    #[serde(default = "default_visits_until_ready")]
+    pub visits_until_ready: u32,
+}
+
+fn default_min_courses() -> u32 {
+    1
+}
+
+fn default_max_courses() -> u32 {
+    3
+}
+
+fn default_visits_until_ready() -> u32 {
+    5
+}
+
+fn default_dish_bill_value() -> i64 {
+    6
+}
+
+fn default_preferred_bill_multiplier() -> f64 {
+    2.0
+}
+
+fn default_satisfied_tip_rate() -> f64 {
+    0.5
+}
+
+fn default_content_dwell_ms() -> f32 {
+    4_000.0
 }
 
 impl Default for GameBalance {
     fn default() -> Self {
         Self {
-            customer_spawn_interval: 24_000.0,
-            initial_spawn_delays: vec![5_000.0, 18_000.0],
+            customer_spawn_interval: 15_000.0,
+            initial_spawn_delays: vec![4_000.0, 11_000.0],
             base_satisfaction_gain: 8.0,
             preferred_satisfaction_gain: 12.0,
             max_satisfaction_per_type: 40.0,
@@ -154,6 +196,13 @@ impl Default for GameBalance {
             special_table_process_time: 3_000.0,
             cooking_slots_limit: 3,
             starting_regular_ingredients: -1,
+            dish_bill_value: 6,
+            preferred_bill_multiplier: 2.0,
+            satisfied_tip_rate: 0.5,
+            content_dwell_ms: 2_000.0,
+            min_courses: 1,
+            max_courses: 3,
+            visits_until_ready: 5,
         }
     }
 }

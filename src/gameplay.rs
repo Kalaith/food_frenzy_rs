@@ -1,7 +1,7 @@
 use crate::data::GameData;
 use crate::engine::{
     can_process_customer, cooking_time_ms, overfeed_multiplier, recipe_capacity_gain,
-    recipe_value_multiplier, serving_gain, serving_points, vip_meat_gain, vip_points,
+    recipe_value_multiplier, serving_bill, serving_gain, serving_points, vip_meat_gain, vip_points,
 };
 use crate::state::{GameState, GuestState, ProgressionState, INFINITE_INGREDIENTS};
 
@@ -70,6 +70,15 @@ pub fn serve_customer(
         return false;
     }
 
+    let Some(course_idx) = game_state.customers[pos].next_course_for(station_color) else {
+        game_state.add_message(format!(
+            "{} didn't order {}.",
+            game_state.customers[pos].display_name,
+            dish_display_name(data, station_color)
+        ));
+        return false;
+    };
+
     let dish_name = {
         let Some(station) = game_state.station_mut(station_color) else {
             return false;
@@ -105,21 +114,26 @@ pub fn serve_customer(
     let is_overfed = game_state.customers[pos].overfed;
     let score_gain = serving_points(data, satisfaction_gain, preferred) as f64;
     let total_gain = add_score(game_state, progression, score_gain, true);
+    let bill_gain = serving_bill(data, preferred);
+    let (course_label, courses_done, courses_total, running_tab) = {
+        let customer = &mut game_state.customers[pos];
+        customer.order[course_idx].served = true;
+        customer.bill = customer.bill.saturating_add(bill_gain);
+        (
+            customer.order[course_idx].label.clone(),
+            customer.courses_served(),
+            customer.order.len(),
+            customer.bill,
+        )
+    };
     progression.record_served_dish(preferred, is_overfed);
     guest_state.record_guest_fed(&game_state.customers[pos].guest_id);
     game_state.combo = game_state.combo.saturating_add(1);
     game_state.chain = game_state.chain.saturating_add(1);
     game_state.add_message(format!(
-        "{} served {dish_name} for {} satisfaction (+{total_gain} points)",
-        game_state.customers[pos].display_name, satisfaction_gain
+        "{} served {course_label} ({dish_name}) +{total_gain} pts, tab ${running_tab} [{courses_done}/{courses_total}]",
+        game_state.customers[pos].display_name
     ));
-
-    if can_process_customer(&game_state.customers[pos], data) {
-        game_state.add_message(format!(
-            "{} is ready for the Last Meal Lounge.",
-            game_state.customers[pos].display_name
-        ));
-    }
 
     true
 }
@@ -151,7 +165,16 @@ pub fn invite_customer_to_vip(
         return false;
     }
     if !can_process_customer(&game_state.customers[index], data) {
-        game_state.add_message("This customer is not ready for VIP yet.".to_string());
+        let customer = &game_state.customers[index];
+        game_state.add_message(format!(
+            "{} needs {} more visits before the lounge ({}/{}).",
+            customer.display_name,
+            data.balance
+                .visits_until_ready
+                .saturating_sub(customer.times_fed),
+            customer.times_fed,
+            data.balance.visits_until_ready
+        ));
         return false;
     }
 

@@ -1,6 +1,6 @@
 {
-  "customer_spawn_interval": 24000,
-  "initial_spawn_delays": [5000, 18000],
+  "customer_spawn_interval": 15000,
+  "initial_spawn_delays": [4000, 11000],
   "base_satisfaction_gain": 8,
   "preferred_satisfaction_gain": 12,
   "max_satisfaction_per_type": 40,
@@ -21,5 +21,12 @@
   "overfeed_multiplier_for_low_appetite": 1.25,
   "special_table_process_time": 3000,
   "cooking_slots_limit": 3,
-  "starting_regular_ingredients": -1
+  "starting_regular_ingredients": -1,
+  "dish_bill_value": 6,
+  "preferred_bill_multiplier": 2.0,
+  "satisfied_tip_rate": 0.5,
+  "content_dwell_ms": 2000,
+  "min_courses": 1,
+  "max_courses": 3,
+  "visits_until_ready": 5
 }
