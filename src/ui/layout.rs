@@ -121,13 +121,14 @@ pub fn draw_and_collect_hitboxes(
     now_ms: f64,
     selected_station: &Option<String>,
     character_textures: &HashMap<String, Texture2D>,
+    interior_sheet: Option<&Texture2D>,
 ) -> UiActions {
     let mut ui = UiActions::default();
     let (left, floor, right, feed) = layout_rects(screen_width(), screen_height());
 
     clear_background(BACKGROUND);
     draw_top_header(data, game, progression);
-    draw_kitchen(left, game, data, selected_station, &mut ui);
+    draw_kitchen(left, game, data, selected_station, interior_sheet, &mut ui);
     draw_dining_room(
         floor,
         game,
@@ -136,6 +137,7 @@ pub fn draw_and_collect_hitboxes(
         now_ms,
         selected_station,
         character_textures,
+        interior_sheet,
         &mut ui,
     );
     draw_growth_panel(right, game, progression, data, &mut ui);

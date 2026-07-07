@@ -10,6 +10,8 @@ const TITLE_TEXTURE_PATHS: [&str; 2] = [
     "food_frenzy_title.png",
 ];
 
+const INTERIOR_SHEET_PATH: &str = "assets/images/interior_sheet.png";
+
 pub async fn load_asset_pack() -> Option<AssetPack> {
     AssetPack::load(ASSET_PACK_PATH).await.ok()
 }
@@ -29,6 +31,14 @@ pub async fn load_character_textures(
     }
 
     textures
+}
+
+/// The interim environment sprite sheet (floors, appliances, furniture, decor,
+/// chef). Nearest filtering keeps the pixel art crisp when scaled.
+pub async fn load_interior_sheet(asset_pack: Option<&AssetPack>) -> Option<Texture2D> {
+    load_texture_from_pack_or_file(asset_pack, INTERIOR_SHEET_PATH, FilterMode::Nearest)
+        .await
+        .ok()
 }
 
 pub async fn load_title_texture(asset_pack: Option<&AssetPack>) -> Option<Texture2D> {

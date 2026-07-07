@@ -4,7 +4,18 @@ use super::common::{
     draw_station_dots, kitchen_to_screen, station_draw_color, ACCENT, CARD, GOLD, LINE, MUTED,
     SUCCESS, TEXT,
 };
+use super::sprites::{self, Region};
 use super::types::UiActions;
+
+/// Interim-art appliance backing each cooking station, themed to its course.
+fn station_region(color: &str) -> Region {
+    match color {
+        "green" => Region::PotStove, // Hearth Broth — simmering pot
+        "yellow" => Region::Stove,   // Butcher's Roast — range
+        "red" => Region::Mixer,      // Velvet Sweets — mixer bench
+        _ => Region::PrepVeg,        // Forager Toasts — prep counter
+    }
+}
 use crate::data::{GameData, STATION_COLORS};
 use crate::engine::kitchen_pass_position;
 use crate::state::{CookingStation, GameState};
@@ -16,6 +27,7 @@ pub(super) fn draw_kitchen(
     game: &GameState,
     data: &GameData,
     selected_station: &Option<String>,
+    interior_sheet: Option<&Texture2D>,
     ui: &mut UiActions,
 ) {
     draw_panel(panel);
@@ -23,7 +35,7 @@ pub(super) fn draw_kitchen(
 
     let hero_h = (panel.h * 0.22).clamp(124.0, 150.0);
     let hero = Rect::new(panel.x + 14.0, panel.y + 44.0, panel.w - 28.0, hero_h);
-    draw_kitchen_hero(hero, game, data);
+    draw_kitchen_hero(hero, game, data, interior_sheet);
 
     let ready = game
         .cooking_stations
@@ -58,7 +70,7 @@ pub(super) fn draw_kitchen(
         if let Some(station) = game.cooking_stations.get(color) {
             let row = Rect::new(panel.x + 14.0, y, panel.w - 28.0, row_h);
             let is_selected = selected_station.as_deref() == Some(color);
-            draw_recipe_station(row, color, station, is_selected, data, ui);
+            draw_recipe_station(row, color, station, is_selected, data, interior_sheet, ui);
         }
         y += row_h + row_gap;
     }
@@ -73,7 +85,7 @@ pub(super) fn draw_kitchen(
     ui.clear_selection = Some(clear_rect);
 }
 
-fn draw_kitchen_hero(rect: Rect, game: &GameState, data: &GameData) {
+fn draw_kitchen_hero(rect: Rect, game: &GameState, data: &GameData, sheet: Option<&Texture2D>) {
     draw_rectangle(
         rect.x,
         rect.y,
@@ -111,18 +123,28 @@ fn draw_kitchen_hero(rect: Rect, game: &GameState, data: &GameData) {
         draw_circle_lines(x, shelf_y + utensil_h + 8.0, 8.0, 1.0, LINE);
     }
 
-    let pot = vec2(rect.x + rect.w * 0.50, rect.y + rect.h * 0.58);
-    let pot_r = (rect.h * 0.22).clamp(26.0, 36.0);
-    draw_circle(pot.x, pot.y + 8.0, pot_r, Color::new(0.09, 0.08, 0.08, 1.0));
-    draw_circle_lines(pot.x, pot.y + 8.0, pot_r + 1.0, 2.0, GOLD);
-    draw_rectangle(
-        pot.x - pot_r - 10.0,
-        pot.y + 4.0,
-        (pot_r + 10.0) * 2.0,
-        pot_r + 6.0,
-        Color::new(0.12, 0.10, 0.09, 1.0),
-    );
-    draw_circle(pot.x, pot.y + pot_r + 10.0, pot_r * 0.45, ORANGE);
+    if let Some(sheet) = sheet {
+        sprites::blit_grounded(
+            sheet,
+            Region::Sink,
+            rect.x + rect.w * 0.5,
+            rect.y + rect.h - 12.0,
+            rect.h * 0.74,
+        );
+    } else {
+        let pot = vec2(rect.x + rect.w * 0.50, rect.y + rect.h * 0.58);
+        let pot_r = (rect.h * 0.22).clamp(26.0, 36.0);
+        draw_circle(pot.x, pot.y + 8.0, pot_r, Color::new(0.09, 0.08, 0.08, 1.0));
+        draw_circle_lines(pot.x, pot.y + 8.0, pot_r + 1.0, 2.0, GOLD);
+        draw_rectangle(
+            pot.x - pot_r - 10.0,
+            pot.y + 4.0,
+            (pot_r + 10.0) * 2.0,
+            pot_r + 6.0,
+            Color::new(0.12, 0.10, 0.09, 1.0),
+        );
+        draw_circle(pot.x, pot.y + pot_r + 10.0, pot_r * 0.45, ORANGE);
+    }
 
     let pass = kitchen_pass_position();
     let pass_pos = kitchen_to_screen(rect, pass.0, pass.1);
@@ -132,6 +154,7 @@ fn draw_kitchen_hero(rect: Rect, game: &GameState, data: &GameData) {
             kitchen_to_screen(rect, game.player.x, game.player.y),
             &game.player,
             0.60,
+            sheet,
         );
     }
 
@@ -153,6 +176,7 @@ fn draw_recipe_station(
     station: &CookingStation,
     is_selected: bool,
     data: &GameData,
+    sheet: Option<&Texture2D>,
     ui: &mut UiActions,
 ) {
     draw_rectangle(
@@ -177,7 +201,18 @@ fn draw_recipe_station(
 
     let plate_r = (row.h * 0.31).clamp(21.0, 30.0);
     let text_x = row.x + 88.0;
-    draw_dish_plate(vec2(row.x + 48.0, row.y + row.h * 0.50), color, plate_r);
+    if let Some(sheet) = sheet {
+        let icon_h = (row.h * 0.62).clamp(40.0, 56.0);
+        sprites::blit_grounded(
+            sheet,
+            station_region(color),
+            row.x + 42.0,
+            row.y + row.h - 8.0,
+            icon_h,
+        );
+    } else {
+        draw_dish_plate(vec2(row.x + 48.0, row.y + row.h * 0.50), color, plate_r);
+    }
     draw_circle(row.x + 16.0, row.y + 18.0, 7.0, station_draw_color(color));
     draw_ui_text(
         &dish_label(data, color),

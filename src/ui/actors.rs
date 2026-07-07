@@ -2,6 +2,7 @@ use super::common::{
     customer_fallback_color, dish_label, draw_bar, draw_button, draw_tooltip, ellipsize,
     floor_to_screen, player_near_customer, station_draw_color, GOLD, LINE, TEXT,
 };
+use super::sprites::{self, Region};
 use super::types::UiActions;
 use crate::data::GameData;
 use crate::state::{Course, Customer, GameState, PlayerActor};
@@ -77,72 +78,82 @@ fn course_chip_text(course: &Course, data: &GameData) -> String {
     }
 }
 
-pub(super) fn draw_player_actor(pos: Vec2, player: &PlayerActor) {
-    draw_player_actor_scaled(pos, player, 1.0);
+pub(super) fn draw_player_actor(pos: Vec2, player: &PlayerActor, sheet: Option<&Texture2D>) {
+    draw_player_actor_scaled(pos, player, 1.0, sheet);
 }
 
-pub(super) fn draw_player_actor_scaled(pos: Vec2, player: &PlayerActor, scale: f32) {
+pub(super) fn draw_player_actor_scaled(
+    pos: Vec2,
+    player: &PlayerActor,
+    scale: f32,
+    sheet: Option<&Texture2D>,
+) {
     let shadow = 24.0 * scale;
-    let body_w = 28.0 * scale;
-    let body_h = 36.0 * scale;
-    let apron_w = 20.0 * scale;
-    let apron_h = 28.0 * scale;
-    let head = 14.0 * scale;
-    let hat_w = 36.0 * scale;
-    let hat_h = 10.0 * scale;
     draw_circle(
         pos.x,
         pos.y - 3.0 * scale,
         shadow,
         Color::new(0.02, 0.02, 0.025, 0.42),
     );
-    draw_rectangle(
-        pos.x - body_w * 0.5,
-        pos.y - 42.0 * scale,
-        body_w,
-        body_h,
-        Color::new(0.78, 0.78, 0.72, 1.0),
-    );
-    draw_rectangle(
-        pos.x - apron_w * 0.5,
-        pos.y - 34.0 * scale,
-        apron_w,
-        apron_h,
-        Color::new(0.18, 0.20, 0.23, 1.0),
-    );
-    draw_circle(
-        pos.x,
-        pos.y - 51.0 * scale,
-        head,
-        Color::new(0.79, 0.62, 0.48, 1.0),
-    );
-    draw_rectangle(
-        pos.x - hat_w * 0.5,
-        pos.y - 68.0 * scale,
-        hat_w,
-        hat_h,
-        Color::new(0.94, 0.92, 0.86, 1.0),
-    );
-    draw_circle(
-        pos.x - 8.0 * scale,
-        pos.y - 67.0 * scale,
-        8.0 * scale,
-        Color::new(0.94, 0.92, 0.86, 1.0),
-    );
-    draw_circle(
-        pos.x + 4.0 * scale,
-        pos.y - 71.0 * scale,
-        9.0 * scale,
-        Color::new(0.94, 0.92, 0.86, 1.0),
-    );
-    draw_rectangle_lines(
-        pos.x - body_w * 0.5,
-        pos.y - 42.0 * scale,
-        body_w,
-        body_h,
-        1.0,
-        LINE,
-    );
+
+    if let Some(sheet) = sheet {
+        sprites::blit_grounded(sheet, Region::Chef, pos.x, pos.y, 86.0 * scale);
+    } else {
+        let body_w = 28.0 * scale;
+        let body_h = 36.0 * scale;
+        let apron_w = 20.0 * scale;
+        let apron_h = 28.0 * scale;
+        let head = 14.0 * scale;
+        let hat_w = 36.0 * scale;
+        let hat_h = 10.0 * scale;
+        draw_rectangle(
+            pos.x - body_w * 0.5,
+            pos.y - 42.0 * scale,
+            body_w,
+            body_h,
+            Color::new(0.78, 0.78, 0.72, 1.0),
+        );
+        draw_rectangle(
+            pos.x - apron_w * 0.5,
+            pos.y - 34.0 * scale,
+            apron_w,
+            apron_h,
+            Color::new(0.18, 0.20, 0.23, 1.0),
+        );
+        draw_circle(
+            pos.x,
+            pos.y - 51.0 * scale,
+            head,
+            Color::new(0.79, 0.62, 0.48, 1.0),
+        );
+        draw_rectangle(
+            pos.x - hat_w * 0.5,
+            pos.y - 68.0 * scale,
+            hat_w,
+            hat_h,
+            Color::new(0.94, 0.92, 0.86, 1.0),
+        );
+        draw_circle(
+            pos.x - 8.0 * scale,
+            pos.y - 67.0 * scale,
+            8.0 * scale,
+            Color::new(0.94, 0.92, 0.86, 1.0),
+        );
+        draw_circle(
+            pos.x + 4.0 * scale,
+            pos.y - 71.0 * scale,
+            9.0 * scale,
+            Color::new(0.94, 0.92, 0.86, 1.0),
+        );
+        draw_rectangle_lines(
+            pos.x - body_w * 0.5,
+            pos.y - 42.0 * scale,
+            body_w,
+            body_h,
+            1.0,
+            LINE,
+        );
+    }
 
     if let Some(station) = &player.carried_station {
         draw_circle(

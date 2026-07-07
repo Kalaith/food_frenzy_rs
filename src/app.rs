@@ -1,4 +1,6 @@
-use crate::assets::{load_asset_pack, load_character_textures, load_title_texture};
+use crate::assets::{
+    load_asset_pack, load_character_textures, load_interior_sheet, load_title_texture,
+};
 use crate::commands::{
     apply_ui_command, clear_empty_selection, handle_keyboard_shortcuts, read_input_action,
     read_settings_action, read_title_action,
@@ -28,6 +30,7 @@ enum AppScreen {
 struct App {
     data: GameData,
     character_textures: HashMap<String, Texture2D>,
+    interior_sheet: Option<Texture2D>,
     title_texture: Option<Texture2D>,
     game_state: GameState,
     progression_state: ProgressionState,
@@ -66,6 +69,7 @@ impl App {
         let data = GameData::load();
         let asset_pack = load_asset_pack().await;
         let character_textures = load_character_textures(&data, asset_pack.as_ref()).await;
+        let interior_sheet = load_interior_sheet(asset_pack.as_ref()).await;
         let title_texture = load_title_texture(asset_pack.as_ref()).await;
         let game_state = GameState::new(&data);
         let progression_state = ProgressionState::from_game_data(&data);
@@ -73,6 +77,7 @@ impl App {
         Self {
             data,
             character_textures,
+            interior_sheet,
             title_texture,
             game_state,
             progression_state,
@@ -196,6 +201,7 @@ impl App {
             self.timers.elapsed_ms,
             &self.selected_station,
             &self.character_textures,
+            self.interior_sheet.as_ref(),
         );
 
         if let Some(command) = read_input_action(ui_hits) {

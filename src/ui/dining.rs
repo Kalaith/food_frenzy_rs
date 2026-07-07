@@ -3,6 +3,7 @@ use super::common::{
     dish_label, draw_bar, draw_button, ellipsize, floor_to_screen, patience_color,
     patience_remaining_ratio, station_draw_color, GOLD, LINE, MUTED, TEXT,
 };
+use super::sprites::{self, Region};
 use super::types::UiActions;
 use crate::data::GameData;
 use crate::engine::{max_customer_count, restaurant_entrance_position, restaurant_table_position};
@@ -111,6 +112,47 @@ fn draw_room_fixtures(floor: Rect) {
     );
 }
 
+/// Dress the room with interim-art decor, kept to the top wall and right edge
+/// so it stays clear of tables, the door, the plaque, and the lounge.
+fn draw_room_decor(floor: Rect, sheet: &Texture2D) {
+    // Garland strung across the top wall.
+    sprites::blit(
+        sheet,
+        Region::StringLights,
+        Rect::new(floor.x + 16.0, floor.y + 2.0, floor.w - 32.0, 38.0),
+    );
+    // House sign hung centre-top; menu board and a framed dish to the right.
+    sprites::blit_grounded(
+        sheet,
+        Region::SignFeast,
+        floor.x + floor.w * 0.52,
+        floor.y + 78.0,
+        50.0,
+    );
+    sprites::blit_grounded(
+        sheet,
+        Region::FramedPic,
+        floor.x + floor.w * 0.70,
+        floor.y + 84.0,
+        58.0,
+    );
+    sprites::blit_grounded(
+        sheet,
+        Region::MenuBoard,
+        floor.x + floor.w - 54.0,
+        floor.y + 104.0,
+        80.0,
+    );
+    // Potted plant softening the right edge.
+    sprites::blit_grounded(
+        sheet,
+        Region::Plant,
+        floor.x + floor.w - 46.0,
+        floor.y + floor.h * 0.52,
+        84.0,
+    );
+}
+
 fn draw_table(
     center: Vec2,
     table_index: usize,
@@ -120,46 +162,70 @@ fn draw_table(
     now_ms: f64,
     selected_station: &Option<String>,
     game: &GameState,
+    interior_sheet: Option<&Texture2D>,
     ui: &mut UiActions,
 ) {
     let table_radius = 48.0;
     let occupied = customer.is_some();
     let ready_for_lounge =
         customer.is_some_and(|customer| crate::engine::can_process_customer(customer, data));
-    let table_color = if occupied {
-        Color::new(0.23, 0.15, 0.09, 1.0)
-    } else {
-        Color::new(0.14, 0.11, 0.09, 1.0)
-    };
-    let outline = if ready_for_lounge {
-        SKYBLUE
-    } else if occupied {
-        Color::new(0.70, 0.50, 0.30, 1.0)
-    } else {
-        Color::new(0.42, 0.34, 0.25, 1.0)
-    };
     let rect = Rect::new(center.x - 74.0, center.y - 58.0, 148.0, 116.0);
-    draw_circle(
-        center.x - 45.0,
-        center.y,
-        18.0,
-        Color::new(0.10, 0.075, 0.06, 1.0),
-    );
-    draw_circle(
-        center.x + 45.0,
-        center.y,
-        18.0,
-        Color::new(0.10, 0.075, 0.06, 1.0),
-    );
-    draw_circle(center.x, center.y, table_radius, table_color);
-    draw_circle_lines(
-        center.x,
-        center.y,
-        table_radius,
-        if ready_for_lounge { 2.5 } else { 1.5 },
-        outline,
-    );
-    draw_circle(center.x, center.y, 14.0, Color::new(0.50, 0.27, 0.15, 1.0));
+
+    if let Some(sheet) = interior_sheet {
+        // Chairs sit behind the table so an occupant reads as seated at it.
+        sprites::blit_grounded(
+            sheet,
+            Region::ChairWood,
+            center.x - 44.0,
+            center.y + 18.0,
+            74.0,
+        );
+        sprites::blit_grounded(
+            sheet,
+            Region::ChairWood,
+            center.x + 44.0,
+            center.y + 18.0,
+            74.0,
+        );
+        sprites::blit_grounded(sheet, Region::RoundTable, center.x, center.y + 34.0, 96.0);
+        if ready_for_lounge {
+            draw_circle_lines(center.x, center.y, table_radius + 4.0, 2.5, SKYBLUE);
+        }
+    } else {
+        let table_color = if occupied {
+            Color::new(0.23, 0.15, 0.09, 1.0)
+        } else {
+            Color::new(0.14, 0.11, 0.09, 1.0)
+        };
+        let outline = if ready_for_lounge {
+            SKYBLUE
+        } else if occupied {
+            Color::new(0.70, 0.50, 0.30, 1.0)
+        } else {
+            Color::new(0.42, 0.34, 0.25, 1.0)
+        };
+        draw_circle(
+            center.x - 45.0,
+            center.y,
+            18.0,
+            Color::new(0.10, 0.075, 0.06, 1.0),
+        );
+        draw_circle(
+            center.x + 45.0,
+            center.y,
+            18.0,
+            Color::new(0.10, 0.075, 0.06, 1.0),
+        );
+        draw_circle(center.x, center.y, table_radius, table_color);
+        draw_circle_lines(
+            center.x,
+            center.y,
+            table_radius,
+            if ready_for_lounge { 2.5 } else { 1.5 },
+            outline,
+        );
+        draw_circle(center.x, center.y, 14.0, Color::new(0.50, 0.27, 0.15, 1.0));
+    }
     draw_ui_text(
         &format!("T{}", table_index + 1),
         center.x - 10.0,
@@ -211,7 +277,12 @@ fn draw_table(
     }
 }
 
-fn draw_last_meal_lounge(floor: Rect, game: &GameState, data: &GameData) {
+fn draw_last_meal_lounge(
+    floor: Rect,
+    game: &GameState,
+    data: &GameData,
+    interior_sheet: Option<&Texture2D>,
+) {
     let lounge = Rect::new(
         floor.x + floor.w - 250.0,
         floor.y + floor.h - 154.0,
@@ -257,6 +328,15 @@ fn draw_last_meal_lounge(floor: Rect, game: &GameState, data: &GameData) {
         Color::new(0.04, 0.035, 0.04, 1.0),
     );
     draw_circle_lines(lounge.x + lounge.w * 0.50, lounge.y + 70.0, 36.0, 1.5, GOLD);
+    if let Some(sheet) = interior_sheet {
+        sprites::blit_grounded(
+            sheet,
+            Region::Candles,
+            lounge.x + lounge.w * 0.5,
+            lounge.y + 88.0,
+            44.0,
+        );
+    }
     draw_ui_text(
         "Last Meal Lounge",
         lounge.x + 14.0,
@@ -310,10 +390,34 @@ pub(super) fn draw_dining_room(
     now_ms: f64,
     selected_station: &Option<String>,
     textures: &HashMap<String, Texture2D>,
+    interior_sheet: Option<&Texture2D>,
     ui: &mut UiActions,
 ) {
-    draw_floor_pattern(floor);
+    if let Some(sheet) = interior_sheet {
+        sprites::tile(sheet, Region::FloorWoodDark, floor, 76.0);
+        // Mute the bright wood into the game's dark palette, then darken the top
+        // strip into a "wall" so the floor reads with depth, not a flat repeat.
+        draw_rectangle(
+            floor.x,
+            floor.y,
+            floor.w,
+            floor.h,
+            Color::new(0.04, 0.03, 0.03, 0.30),
+        );
+        draw_rectangle(
+            floor.x,
+            floor.y,
+            floor.w,
+            96.0,
+            Color::new(0.05, 0.04, 0.04, 0.45),
+        );
+    } else {
+        draw_floor_pattern(floor);
+    }
     draw_room_fixtures(floor);
+    if let Some(sheet) = interior_sheet {
+        draw_room_decor(floor, sheet);
+    }
     draw_rectangle_lines(floor.x, floor.y, floor.w, floor.h, 1.5, LINE);
 
     let selected_text = selected_station.as_deref().map(|color| {
@@ -371,7 +475,7 @@ pub(super) fn draw_dining_room(
         GOLD,
     );
 
-    draw_last_meal_lounge(floor, game, data);
+    draw_last_meal_lounge(floor, game, data, interior_sheet);
 
     let max_tables = max_customer_count(data, progression);
     for table_index in 0..max_tables {
@@ -389,6 +493,7 @@ pub(super) fn draw_dining_room(
             now_ms,
             selected_station,
             game,
+            interior_sheet,
             ui,
         );
     }
@@ -397,6 +502,7 @@ pub(super) fn draw_dining_room(
         draw_player_actor(
             floor_to_screen(floor, game.player.x, game.player.y),
             &game.player,
+            interior_sheet,
         );
     }
 

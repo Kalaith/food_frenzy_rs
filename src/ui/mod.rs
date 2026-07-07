@@ -7,6 +7,7 @@ mod growth;
 mod kitchen;
 mod layout;
 mod menu;
+mod sprites;
 mod types;
 
 pub use layout::draw_and_collect_hitboxes;
