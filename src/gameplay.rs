@@ -167,7 +167,7 @@ pub fn invite_customer_to_vip(
     if !can_process_customer(&game_state.customers[index], data) {
         let customer = &game_state.customers[index];
         game_state.add_message(format!(
-            "{} needs {} more visits before the lounge ({}/{}).",
+            "{} isn't plump enough yet — {} more visits ({}/{}).",
             customer.display_name,
             data.balance
                 .visits_until_ready
@@ -207,8 +207,8 @@ pub fn invite_customer_to_vip(
     game_state.special_table_busy = true;
     game_state.special_table_timer = data.balance.special_table_process_time;
     game_state.add_message(format!(
-        "{} entered the Last Meal Lounge. {} gained with +{} {}.",
-        customer.display_name, awarded, meat_gain, meat_type
+        "{} steps into the Last Meal Lounge. Larder +{} {} (+{} renown).",
+        customer.display_name, meat_gain, meat_type, awarded
     ));
 
     true

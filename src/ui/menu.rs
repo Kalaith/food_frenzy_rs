@@ -26,7 +26,7 @@ fn draw_title_background(title_texture: Option<&Texture2D>) {
         );
         draw_rectangle(0.0, 0.0, width, height, Color::new(0.0, 0.0, 0.0, 0.10));
     } else {
-        draw_text_centered_in_box("Food Frenzy", 0.0, height * 0.22, width, 120.0, 72.0, TEXT);
+        draw_text_centered_in_box("Feast Frenzy", 0.0, height * 0.22, width, 120.0, 72.0, TEXT);
     }
 
     let band_h = 170.0_f32.min(height * 0.28);
@@ -89,6 +89,19 @@ pub fn draw_title_screen(title_texture: Option<&Texture2D>, status_message: &str
     draw_title_background(title_texture);
 
     let actions = title_button_layout(width, height);
+
+    // The house's public promise: warm and welcoming on first read, and only
+    // later — once the player learns what the Lounge is for — quietly sinister.
+    draw_text_centered_in_box(
+        "Where every guest leaves fuller than they arrived.",
+        24.0,
+        actions.new_game.y - 76.0,
+        width - 48.0,
+        26.0,
+        19.0,
+        LIGHTGRAY,
+    );
+
     if !status_message.is_empty() {
         draw_text_centered_in_box(
             status_message,

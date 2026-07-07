@@ -154,10 +154,10 @@ fn update_patience(
             progression.record_customer_lost();
             if paid > 0 {
                 game_state.add_message(format!(
-                    "{name} left disappointed ({served}/{ordered} courses), paid ${paid}."
+                    "{name} left unhappy ({served}/{ordered} courses), only paid ${paid}."
                 ));
             } else {
-                game_state.add_message(format!("{name} left disappointed without eating."));
+                game_state.add_message(format!("{name} left hungry and unhappy. A shame."));
             }
         }
 
@@ -211,12 +211,12 @@ fn update_departures(
         guest_state.record_guest_satisfied_visit(&customer.guest_id);
         let fed = customer.times_fed.saturating_add(1);
         let ready_hint = if fed >= data.balance.visits_until_ready {
-            " Ready for the lounge next visit."
+            " Plump enough for the Lounge next visit."
         } else {
             ""
         };
         messages.push(format!(
-            "{} left full and paid ${paid} (${bill} + ${tip} tip).{ready_hint}",
+            "{} left glowing and settled ${paid} (${bill} +${tip} tip).{ready_hint}",
             customer.display_name
         ));
     }
@@ -364,12 +364,18 @@ fn try_spawn_customer(
     guest_state.record_guest_visit(&guest_record.id);
     if times_fed >= data.balance.visits_until_ready {
         game_state.add_message(format!(
-            "{} returns plump and ready for the Last Meal Lounge!",
+            "{} waddles back in, plump and ready. The Lounge awaits.",
             guest_record.name
+        ));
+    } else if times_fed == 0 {
+        game_state.add_message(format!(
+            "Welcome in, {}! Make them cozy at table {}.",
+            guest_record.name,
+            table_index + 1
         ));
     } else {
         game_state.add_message(format!(
-            "{} arrived at table {} (visit {}).",
+            "Welcome back, {}! Table {} (visit {}).",
             guest_record.name,
             table_index + 1,
             times_fed + 1
@@ -592,12 +598,21 @@ mod tests {
         // Empty guest list: the satisfied-visit bookkeeping is a no-op here, which
         // keeps the test off macroquad's time API (unavailable headless).
         let mut guest_state = GuestState::new();
-        game_state
-            .customers
-            .push(seated_customer(1, 20, vec![course("blue", true), course("red", true)], 0));
+        game_state.customers.push(seated_customer(
+            1,
+            20,
+            vec![course("blue", true), course("red", true)],
+            0,
+        ));
 
         let dt = data.balance.content_dwell_ms + 100.0;
-        update_departures(dt, &data, &mut game_state, &mut progression, &mut guest_state);
+        update_departures(
+            dt,
+            &data,
+            &mut game_state,
+            &mut progression,
+            &mut guest_state,
+        );
 
         assert!(game_state.customers.is_empty(), "guest should have left");
         let tip = crate::engine::satisfied_tip(&data, 20);
@@ -610,22 +625,45 @@ mod tests {
         let mut game_state = GameState::new(&data);
         let mut progression = ProgressionState::from_game_data(&data);
         let mut guest_state = GuestState::new();
-        game_state
-            .customers
-            .push(seated_customer(1, 12, vec![course("blue", true), course("red", false)], 0));
+        game_state.customers.push(seated_customer(
+            1,
+            12,
+            vec![course("blue", true), course("red", false)],
+            0,
+        ));
 
         let dt = data.balance.content_dwell_ms + 100.0;
-        update_departures(dt, &data, &mut game_state, &mut progression, &mut guest_state);
+        update_departures(
+            dt,
+            &data,
+            &mut game_state,
+            &mut progression,
+            &mut guest_state,
+        );
 
-        assert_eq!(game_state.customers.len(), 1, "order not finished, guest stays");
+        assert_eq!(
+            game_state.customers.len(),
+            1,
+            "order not finished, guest stays"
+        );
         assert_eq!(progression.currency, 0);
     }
 
     #[test]
     fn readiness_is_reached_after_enough_fed_visits() {
         let data = GameData::load();
-        let below = seated_customer(1, 0, vec![course("blue", false)], data.balance.visits_until_ready - 1);
-        let ready = seated_customer(2, 0, vec![course("blue", false)], data.balance.visits_until_ready);
+        let below = seated_customer(
+            1,
+            0,
+            vec![course("blue", false)],
+            data.balance.visits_until_ready - 1,
+        );
+        let ready = seated_customer(
+            2,
+            0,
+            vec![course("blue", false)],
+            data.balance.visits_until_ready,
+        );
         assert!(!crate::engine::can_process_customer(&below, &data));
         assert!(crate::engine::can_process_customer(&ready, &data));
     }

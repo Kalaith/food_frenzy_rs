@@ -293,7 +293,7 @@ fn draw_last_meal_lounge(floor: Rect, game: &GameState, data: &GameData) {
         );
     } else {
         draw_ui_text(
-            "Ready after repeat visits",
+            "Opens once a guest is plump",
             lounge.x + 14.0,
             lounge.y + lounge.h - 18.0,
             12.0,

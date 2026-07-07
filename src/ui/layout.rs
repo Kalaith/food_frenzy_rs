@@ -41,7 +41,7 @@ fn draw_top_header(data: &GameData, game: &GameState, progression: &ProgressionS
             Color::new(0.52, 0.84, 0.46, 1.0),
         ),
         (
-            "Score",
+            "Renown",
             game.score.to_string(),
             Color::new(0.44, 0.66, 0.96, 1.0),
         ),

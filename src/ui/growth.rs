@@ -203,7 +203,7 @@ fn draw_pantry_card(card: Rect, game: &GameState) {
     let ingredients = sorted_ingredient_lines(game);
     if ingredients.is_empty() {
         draw_ui_text(
-            "No harvested ingredients",
+            "The larder is bare",
             card.x + 12.0,
             card.y + 62.0,
             15.0,
