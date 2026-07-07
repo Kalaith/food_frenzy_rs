@@ -91,10 +91,52 @@ impl App {
             "title" => self.app_screen = AppScreen::Title,
             "settings" => self.app_screen = AppScreen::Settings,
             _ => {
-                // Default: jump straight into gameplay on a fresh save.
+                // Default: jump straight into gameplay on a fresh save, then
+                // warm the world into a lively state so headless captures show
+                // seated guests and active stations instead of an empty room.
                 self.start_new_game();
+                self.seed_gameplay_demo();
             }
         }
+    }
+
+    /// Advance a fresh game into a representative mid-service moment for the
+    /// screenshot harness: guests seated, one dish plated, another cooking.
+    /// Capture-only — the normal game loop never calls this.
+    fn seed_gameplay_demo(&mut self) {
+        let step = |app: &mut Self, dt_ms: f32| {
+            update_game_world(
+                dt_ms,
+                &app.data,
+                &mut app.game_state,
+                &mut app.progression_state,
+                &mut app.guest_state,
+                &mut app.timers,
+            );
+        };
+
+        // Run ~12s of simulation so both opening guests arrive and take a table.
+        for _ in 0..60 {
+            step(self, 200.0);
+        }
+        // Plate a quick appetizer and get a slower roast going for visible state.
+        crate::gameplay::start_cooking(
+            "blue",
+            &self.data,
+            &self.progression_state,
+            &mut self.game_state,
+        );
+        crate::gameplay::start_cooking(
+            "yellow",
+            &self.data,
+            &self.progression_state,
+            &mut self.game_state,
+        );
+        for _ in 0..18 {
+            step(self, 200.0);
+        }
+        // Carry the ready appetizer so the serve prompt and buttons are shown.
+        self.selected_station = Some("blue".to_string());
     }
 
     fn tick(&mut self) {
