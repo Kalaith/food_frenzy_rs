@@ -1,5 +1,12 @@
 # Feast Frenzy
 
+<!--
+Editorial stance (decided 2026-07-08, per game_review.md): this README keeps the
+"wholesome café" framing as deliberate marketing misdirection. The fattening /
+Last Meal Lounge premise is meant to be discovered in play, not spoiled here.
+Keep new copy cozy on the surface; the dark hook lives in the game itself.
+-->
+
 Feast Frenzy is a restaurant simulation game about preparing house recipes, serving hungry guests, and keeping the dining room moving.
 
 You juggle stations, guest demands, recipe timing, and score thresholds while building momentum toward prestige.

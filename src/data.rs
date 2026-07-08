@@ -261,3 +261,247 @@ fn data_file_path(filename: &str, embedded: &str) -> String {
     let _ = embedded;
     format!("assets/data/{filename}.json")
 }
+
+// `parse_or_fallback` deliberately degrades at runtime; these tests are the
+// loud counterpart so a broken or drifted JSON asset fails CI instead of
+// silently shipping empty content.
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn parsed() -> GameData {
+        GameData {
+            customer_types: serde_json::from_str(CUSTOMER_TYPES_JSON)
+                .expect("customer_types.json must parse"),
+            dish_types: serde_json::from_str(DISH_TYPES_JSON).expect("dish_types.json must parse"),
+            upgrades: serde_json::from_str(UPGRADES_JSON).expect("upgrades.json must parse"),
+            recipes: serde_json::from_str(RECIPES_JSON).expect("recipes.json must parse"),
+            achievements: serde_json::from_str(ACHIEVEMENTS_JSON)
+                .expect("achievements.json must parse"),
+            balance: serde_json::from_str(GAME_BALANCE_JSON).expect("game_balance.json must parse"),
+        }
+    }
+
+    fn meat_key(customer_type_id: &str) -> String {
+        // Must match the key minted in `gameplay.rs` when a guest is processed.
+        format!("{customer_type_id}-meat")
+    }
+
+    fn assert_unique_ids(kind: &str, ids: &[&str]) {
+        let mut seen = std::collections::HashSet::new();
+        for id in ids {
+            assert!(seen.insert(*id), "duplicate {kind} id: {id}");
+        }
+    }
+
+    #[test]
+    fn all_embedded_assets_parse_strictly() {
+        let data = parsed();
+        assert!(!data.customer_types.is_empty(), "no customer types");
+        assert!(!data.dish_types.is_empty(), "no dish types");
+        assert!(!data.upgrades.is_empty(), "no upgrades");
+        assert!(!data.recipes.is_empty(), "no recipes");
+        assert!(!data.achievements.is_empty(), "no achievements");
+    }
+
+    #[test]
+    fn ids_are_unique_across_each_asset() {
+        let data = parsed();
+        assert_unique_ids(
+            "customer type",
+            &data
+                .customer_types
+                .iter()
+                .map(|item| item.id.as_str())
+                .collect::<Vec<_>>(),
+        );
+        assert_unique_ids(
+            "upgrade",
+            &data
+                .upgrades
+                .iter()
+                .map(|item| item.id.as_str())
+                .collect::<Vec<_>>(),
+        );
+        assert_unique_ids(
+            "recipe",
+            &data
+                .recipes
+                .iter()
+                .map(|item| item.id.as_str())
+                .collect::<Vec<_>>(),
+        );
+        assert_unique_ids(
+            "achievement",
+            &data
+                .achievements
+                .iter()
+                .map(|item| item.id.as_str())
+                .collect::<Vec<_>>(),
+        );
+    }
+
+    #[test]
+    fn dish_types_cover_exactly_the_station_colors() {
+        let data = parsed();
+        let colors: Vec<&str> = data
+            .dish_types
+            .iter()
+            .map(|dish| dish.color.as_str())
+            .collect();
+        assert_eq!(colors.len(), STATION_COLORS.len());
+        for color in STATION_COLORS {
+            assert!(colors.contains(&color), "missing dish for station {color}");
+        }
+        for dish in &data.dish_types {
+            assert!(
+                dish.cook_time_ms > 0.0,
+                "{}: cook time must be > 0",
+                dish.color
+            );
+            assert!(
+                !dish.examples.is_empty(),
+                "{}: needs example names",
+                dish.color
+            );
+        }
+    }
+
+    #[test]
+    fn customer_types_reference_real_dishes_and_meats() {
+        let data = parsed();
+        let valid_ingredients: Vec<String> = data
+            .customer_types
+            .iter()
+            .map(|item| meat_key(&item.id))
+            .chain(std::iter::once(
+                data.balance.regular_ingredient_name.clone(),
+            ))
+            .collect();
+
+        for customer_type in &data.customer_types {
+            assert!(
+                !customer_type.preferred_dishes.is_empty(),
+                "{}: needs at least one preferred dish",
+                customer_type.id
+            );
+            for dish_color in &customer_type.preferred_dishes {
+                assert!(
+                    data.dish_type_by_color(dish_color).is_some(),
+                    "{}: unknown preferred dish {dish_color}",
+                    customer_type.id
+                );
+            }
+            for ingredient in customer_type.unlock_cost.keys() {
+                assert!(
+                    valid_ingredients.contains(ingredient),
+                    "{}: unlock cost references unknown ingredient {ingredient}",
+                    customer_type.id
+                );
+            }
+            assert!(
+                customer_type.initially_unlocked || !customer_type.unlock_cost.is_empty(),
+                "{}: locked type must have an unlock cost or it is unreachable",
+                customer_type.id
+            );
+        }
+    }
+
+    #[test]
+    fn recipes_reference_real_customer_types_and_meats() {
+        let data = parsed();
+        let valid_ingredients: Vec<String> = data
+            .customer_types
+            .iter()
+            .map(|item| meat_key(&item.id))
+            .chain(std::iter::once(
+                data.balance.regular_ingredient_name.clone(),
+            ))
+            .collect();
+
+        for recipe in &data.recipes {
+            assert!(
+                !recipe.ingredients.is_empty(),
+                "{}: no ingredients",
+                recipe.id
+            );
+            for ingredient in recipe.ingredients.keys() {
+                assert!(
+                    valid_ingredients.contains(ingredient),
+                    "{}: unknown ingredient {ingredient}",
+                    recipe.id
+                );
+            }
+            if let Some(customer_type) = &recipe.customer_type {
+                assert!(
+                    data.customer_type_by_id(customer_type).is_some(),
+                    "{}: unknown customer type {customer_type}",
+                    recipe.id
+                );
+            }
+            assert!(
+                recipe.base_value > 0,
+                "{}: base value must be > 0",
+                recipe.id
+            );
+        }
+    }
+
+    #[test]
+    fn upgrade_effects_only_use_keys_the_engine_reads() {
+        // Keep in sync with the `get_effect` call sites in engine.rs/gameplay.rs;
+        // an unread effect key is a balance change that silently does nothing.
+        const KNOWN_EFFECTS: [&str; 9] = [
+            "capacity_gain_multiplier",
+            "combo_multiplier",
+            "cook_time_multiplier",
+            "max_customers_bonus",
+            "meat_yield_multiplier",
+            "patience_multiplier",
+            "recipe_value_multiplier",
+            "satisfaction_decay_multiplier",
+            "spawn_interval_multiplier",
+        ];
+        let data = parsed();
+        for upgrade in &data.upgrades {
+            assert!(!upgrade.effects.is_empty(), "{}: no effects", upgrade.id);
+            for key in upgrade.effects.keys() {
+                assert!(
+                    KNOWN_EFFECTS.contains(&key.as_str()),
+                    "{}: effect key {key} is never read by the engine",
+                    upgrade.id
+                );
+            }
+            assert!(
+                upgrade.max_level >= 1,
+                "{}: max level must be >= 1",
+                upgrade.id
+            );
+            assert!(
+                upgrade.cost_growth >= 1.0,
+                "{}: cost growth below 1.0 makes upgrades cheaper over time",
+                upgrade.id
+            );
+        }
+    }
+
+    #[test]
+    fn achievements_and_balance_are_sane() {
+        let data = parsed();
+        for achievement in &data.achievements {
+            assert!(
+                achievement.max_progress > 0,
+                "{}: max progress must be > 0",
+                achievement.id
+            );
+        }
+        let balance = &data.balance;
+        assert!(balance.max_customers >= 1);
+        assert!(balance.visits_until_ready >= 1);
+        assert!(balance.min_courses >= 1);
+        assert!(balance.min_courses <= balance.max_courses);
+        assert!(balance.max_courses as usize <= STATION_COLORS.len());
+        assert!(balance.prestige_score_requirement > 0);
+        assert!(balance.special_table_process_time > 0.0);
+    }
+}
