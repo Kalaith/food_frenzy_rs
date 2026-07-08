@@ -1,6 +1,7 @@
 use crate::assets::{
     load_asset_pack, load_character_textures, load_interior_sheet, load_title_texture,
 };
+use crate::audio::AudioBank;
 use crate::commands::{
     apply_ui_command, clear_empty_selection, handle_keyboard_shortcuts, read_input_action,
     read_settings_action, read_title_action,
@@ -31,6 +32,7 @@ enum AppScreen {
 
 struct App {
     data: GameData,
+    audio: AudioBank,
     character_textures: HashMap<String, Texture2D>,
     interior_sheet: Option<Texture2D>,
     title_texture: Option<Texture2D>,
@@ -70,6 +72,7 @@ impl App {
     async fn load() -> Self {
         let data = GameData::load();
         let asset_pack = load_asset_pack().await;
+        let audio = AudioBank::load(asset_pack.as_ref()).await;
         let character_textures = load_character_textures(&data, asset_pack.as_ref()).await;
         let interior_sheet = load_interior_sheet(asset_pack.as_ref()).await;
         let title_texture = load_title_texture(asset_pack.as_ref()).await;
@@ -78,6 +81,7 @@ impl App {
 
         Self {
             data,
+            audio,
             character_textures,
             interior_sheet,
             title_texture,
@@ -101,6 +105,25 @@ impl App {
                 self.start_new_game();
                 self.seed_gameplay_demo();
                 self.game_state.show_clientele_board = true;
+            }
+            "dining_rush" => {
+                // A rush in full swing: extra guests inbound, banner up.
+                self.start_new_game();
+                self.seed_gameplay_demo();
+                self.game_state.active_event = Some(crate::state::ActiveEvent {
+                    event_id: "dinner-rush".to_string(),
+                    remaining_ms: 30_000.0,
+                });
+                for _ in 0..40 {
+                    update_game_world(
+                        200.0,
+                        &self.data,
+                        &mut self.game_state,
+                        &mut self.progression_state,
+                        &mut self.guest_state,
+                        &mut self.timers,
+                    );
+                }
             }
             "day_summary" => {
                 // End of a productive first day: the closing ledger is up.
@@ -216,12 +239,15 @@ impl App {
     }
 
     fn tick_settings(&mut self) {
-        let settings_hits = draw_settings_screen(self.fullscreen_enabled);
+        let settings_hits = draw_settings_screen(self.fullscreen_enabled, self.audio.enabled);
         if let Some(action) = read_settings_action(&settings_hits) {
             match action {
                 SettingsAction::ToggleFullscreen => {
                     self.fullscreen_enabled = !self.fullscreen_enabled;
                     set_fullscreen(self.fullscreen_enabled);
+                }
+                SettingsAction::ToggleSound => {
+                    self.audio.enabled = !self.audio.enabled;
                 }
                 SettingsAction::Back => {
                     self.app_screen = AppScreen::Title;
@@ -287,7 +313,16 @@ impl App {
             );
             clear_empty_selection(&mut self.selected_station, &mut self.game_state);
         }
+        self.drain_sfx();
         self.save_if_due(dt_ms);
+    }
+
+    /// Play whatever sound cues gameplay queued this frame.
+    fn drain_sfx(&mut self) {
+        let cues: Vec<_> = self.game_state.sfx_queue.drain(..).collect();
+        for cue in cues {
+            self.audio.play(cue);
+        }
     }
 
     /// While the Last Meal Lounge sequence plays, the world holds its breath:
@@ -340,6 +375,7 @@ impl App {
                 );
             }
         }
+        self.drain_sfx();
         self.save_if_due(dt_ms);
     }
 

@@ -58,12 +58,14 @@ impl TitleActions {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SettingsAction {
     ToggleFullscreen,
+    ToggleSound,
     Back,
 }
 
 #[derive(Clone, Debug)]
 pub struct SettingsActions {
     pub fullscreen_toggle: Rect,
+    pub sound_toggle: Rect,
     pub back: Rect,
 }
 
@@ -71,6 +73,8 @@ impl SettingsActions {
     pub fn action_at(&self, point: Vec2) -> Option<SettingsAction> {
         if self.fullscreen_toggle.contains(point) {
             Some(SettingsAction::ToggleFullscreen)
+        } else if self.sound_toggle.contains(point) {
+            Some(SettingsAction::ToggleSound)
         } else if self.back.contains(point) {
             Some(SettingsAction::Back)
         } else {

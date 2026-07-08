@@ -89,6 +89,7 @@ pub fn start_cooking(
     if station.can_cook(cooking_slot_limit) {
         station.is_cooking = true;
         station.remaining_ms = cooking_time_ms(data, progression, station_color);
+        game_state.queue_sfx(crate::state::SfxCue::CookStart);
         game_state.tutorial_observe(TutorialTrigger::CookingStarted, data);
         true
     } else {
@@ -218,6 +219,7 @@ pub fn serve_customer(
     game_state
         .floaters
         .spawn_at(gain_text, FloaterKind::Renown, floor_x, floor_y);
+    game_state.queue_sfx(crate::state::SfxCue::Serve);
     game_state.tutorial_observe(TutorialTrigger::CourseServed, data);
     award_streak_bonuses(data, game_state, progression, floor_x, floor_y);
 
@@ -384,6 +386,7 @@ pub fn invite_customer_to_vip(
     );
     cinematic.farewell = farewell;
     game_state.processing_cinematic = Some(cinematic);
+    game_state.queue_sfx(crate::state::SfxCue::LoungeSting);
     game_state.tutorial_observe(TutorialTrigger::GuestProcessed, data);
 
     true

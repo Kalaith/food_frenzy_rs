@@ -168,6 +168,9 @@ pub struct PersonalityDef {
     pub arrival: String,
     /// The processing farewell line — the dark beat in the Lounge reveal.
     pub farewell: String,
+    /// Idle table-talk lines shown in ambient speech bubbles.
+    #[serde(default)]
+    pub chatter: Vec<String>,
 }
 
 /// A timed dining situation (rush, inspector, critic, generous mood).

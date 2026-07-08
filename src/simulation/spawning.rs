@@ -124,6 +124,7 @@ fn try_spawn_customer(
         order,
         times_fed,
         trait_alert: None,
+        personality: guest_record.personality.clone(),
     });
     guest_state.record_guest_visit(&guest_record.id);
     game_state.full_room_bonus_armed = true;

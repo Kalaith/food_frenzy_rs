@@ -139,6 +139,9 @@ pub(super) fn update_departures(
     game_state.combo = game_state.combo.saturating_add(1);
     game_state.day_cycle.stats.cash_earned += cash_earned;
     game_state.day_cycle.stats.guests_served += served_count;
+    if served_count > 0 {
+        game_state.queue_sfx(crate::state::SfxCue::Cash);
+    }
     for (text, x, y) in floaters {
         game_state.floaters.spawn_at(text, FloaterKind::Cash, x, y);
     }
@@ -231,6 +234,7 @@ mod tests {
             order,
             times_fed,
             trait_alert: None,
+            personality: None,
         }
     }
 

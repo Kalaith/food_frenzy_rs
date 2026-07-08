@@ -256,6 +256,17 @@ fn draw_recipe_station(
             station.remaining_ms,
             data,
         );
+        // Ambient steam puffs so a working stove reads alive at a glance.
+        let clock = macroquad::time::get_time() as f32;
+        for puff in 0..3 {
+            let t = (clock * 0.8 + puff as f32 * 0.33) % 1.0;
+            draw_circle(
+                row.x + 42.0 + (puff as f32 - 1.0) * 7.0 + (clock * 2.0 + puff as f32).sin() * 3.0,
+                row.y + row.h - 14.0 - t * 26.0,
+                3.5 * (1.0 - t) + 1.0,
+                Color::new(0.85, 0.85, 0.88, 0.30 * (1.0 - t)),
+            );
+        }
     }
 
     let can_cook = station.can_cook(data.balance.cooking_slots_limit);

@@ -55,6 +55,7 @@ pub(super) fn update_events(
                 remaining_ms: event.duration_ms.max(1_000.0),
             });
             game_state.add_message(event.announcement.clone());
+            game_state.queue_sfx(crate::state::SfxCue::Event);
             game_state.floaters.spawn(
                 event.name.clone(),
                 FloaterKind::Alert,

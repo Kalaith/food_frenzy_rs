@@ -57,6 +57,7 @@ fn update_day_cycle(
         .update(dt_ms, data.balance.day_length_ms)
     {
         progression.record_day_completed();
+        game_state.queue_sfx(crate::state::SfxCue::DayEnd);
         game_state.add_message(format!(
             "Day {} ends. The doors close for the night.",
             game_state.day_cycle.day
@@ -101,6 +102,7 @@ fn update_customer_movement(
 fn update_cooking(dt_ms: f32, data: &GameData, game_state: &mut GameState) {
     let mut messages = Vec::new();
     let mut spoiled = 0usize;
+    let mut plated = false;
     for station in game_state.cooking_stations.values_mut() {
         // Plated dishes age on the pass; spoiled ones are thrown out.
         for dish in &mut station.dishes {
@@ -125,6 +127,7 @@ fn update_cooking(dt_ms: f32, data: &GameData, game_state: &mut GameState) {
                 station
                     .dishes
                     .push(crate::state::PlatedDish::new(cooked_name.clone()));
+                plated = true;
                 messages.push(format!(
                     "{} ready: {cooked_name}",
                     dish_display_name(data, &station.color)
@@ -135,6 +138,9 @@ fn update_cooking(dt_ms: f32, data: &GameData, game_state: &mut GameState) {
         }
     }
 
+    if plated {
+        game_state.queue_sfx(crate::state::SfxCue::DishReady);
+    }
     if spoiled > 0 {
         game_state.floaters.spawn(
             format!("{spoiled} dish(es) spoiled on the pass"),

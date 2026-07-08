@@ -7,39 +7,42 @@ Last Meal Lounge premise is meant to be discovered in play, not spoiled here.
 Keep new copy cozy on the surface; the dark hook lives in the game itself.
 -->
 
-Feast Frenzy is a restaurant simulation game about preparing house recipes, serving hungry guests, and keeping the dining room moving.
+Feast Frenzy is a cozy restaurant management game about running a little café
+where every guest leaves fuller than they arrived. Cook house recipes, learn
+your regulars by name, and grow a humble three-table dining room into a
+renowned establishment — one satisfied guest at a time.
 
-You juggle stations, guest demands, recipe timing, and score thresholds while building momentum toward prestige.
+## Features
 
-## Gameplay
-
-- Start dishes at the right station.
-- Serve customers before the restaurant falls behind.
-- Clear and redirect stations as demand changes.
-- Earn score and rewards from completed service.
-- Push toward prestige when the restaurant is ready.
-
-## Goal
-
-Keep guests fed, chain efficient service, and build enough score to prestige into stronger future runs.
+- **A full day of service** — a real-time day cycle with a closing ledger
+  every night: takings, guests served, best streaks, and tomorrow's goal.
+- **Guests with personality** — a persistent, named clientele across 13 types
+  and 4 tiers; regulars come back, chat at their tables, and are always
+  welcomed warmly. Every guest type has its own quirk to play around: foxes
+  eye the pass, monkeys get cranky, big tippers reward good service.
+- **A kitchen with a clock** — four stations, dish freshness on the pass,
+  order courses, combo streaks, and full-house bonuses reward tight service.
+- **The house specialty** — loyal guests are eventually invited to the
+  exclusive Last Meal Lounge for a private final course, stocking the larder
+  with the premium ingredients that attract an even finer clientele.
+- **Make the house yours** — three café specializations with real trade-offs,
+  nine upgrade tracks, twelve unlockable recipes, twenty achievements, and a
+  prestige system with permanent perks.
+- **Dining events** — dinner rushes, incognito critics, generous evenings,
+  and the occasional health inspector keep every day a little different.
+- **A guided first shift** — an eight-step tutorial teaches the loop, and
+  every meter in the house explains itself on hover.
 
 ## Controls
 
 - Left Click: interact with restaurant UI.
-- 1: start Forager Toasts.
-- 2: start Hearth Broth.
-- 3: start Butcher's Roast.
-- 4: start Velvet Sweets.
-- C: clear selected station.
-- P: prestige if the score threshold is met.
+- WASD / arrows: walk the chef around the floor.
+- Space / E: interact with the nearest station or guest.
+- 1–4: start each kitchen station.
+- C: clear the carried dish.
+- P: prestige when the renown bar is full.
 
-## Current Scope
+## Goal
 
-Playable restaurant loop with named recipes, station control, guest processing, scoring, rewards, and prestige pressure.
-# Practical Future Improvements
-
-- Add deterministic tests for kitchen queue order, dining timers, actor states, and growth progression across speed changes.
-- Separate actor animation from gameplay state so rendering cannot change restaurant simulation outcomes.
-- Move recipe, patience, reward, and upgrade tuning into small fixtures that support quick balance passes.
-- Add stress scenarios for peak dining load to catch queue, seating, and order-delivery regressions.
-
+Keep guests fed, chain efficient service, climb the clientele ladder, and
+prestige into stronger future runs — the house remembers what you keep.

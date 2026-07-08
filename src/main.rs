@@ -4,6 +4,7 @@
 
 mod app;
 mod assets;
+mod audio;
 mod commands;
 mod data;
 mod engine;

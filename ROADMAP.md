@@ -148,19 +148,25 @@ Review goal: *sustain the players Phases 1–2 retain.*
 
 Review goal: *make the café-hiding-a-butchery identity felt and shareable.*
 
-- [ ] **Art/tone pass** — build on the pixel sprite sheet: warm café palette
-      with subtly wrong details, ambient dining-room life (idle chatter
-      bubbles, chef busywork), décor that darkens as tiers rise. (~600 LOC)
-- [ ] **Audio system** — toolkit-first: cozy ambience loop, cooking/serving
-      SFX, and the processing sting from Phase 1 grown into a full mixing
-      layer with settings. (~450 LOC)
-- [ ] **Save robustness** — versioned persistence with migration for all the
-      new state (regulars, specialization, day cycle, tutorial progress).
-      (~300 LOC)
-- [ ] **Capture scenes** — register `title`, `dining_rush`, `lounge`,
-      `day_summary`, `clientele_board` with the capture harness; refresh
-      `catalog_thumbnail.png`; rewrite the standing-visible README feature
-      list. (~150 LOC)
+- [x] **Art/tone pass** — `ui/ambience.rs`: personality-driven idle chatter
+      bubbles over seated guests, steam puffs on working stations, and a
+      creeping red-dark room tint that deepens as the clientele ladder
+      climbs (the "subtly wrong" tone cue).
+- [x] **Audio system** — 7 procedurally generated SFX clips in
+      `assets/sounds/` (cook, plate, serve, cash, day chime, event, and the
+      Lounge's wrong-note sting), loaded via the toolkit's
+      `load_sound_from_pack_or_file`; gameplay queues `SfxCue`s that the
+      app drains (`src/audio.rs`); sound toggle added to Settings;
+      macroquad `audio` feature enabled.
+- [x] **Save robustness** — `SAVE_VERSION` 1 → 2 with an explicit
+      `migrate()` step on load and a regression test that loads a real
+      pre-roadmap v1 fixture (bare-string dishes, no tutorial/day/regular
+      state) and verifies nothing is lost.
+- [x] **Capture scenes** — 8 scenes registered (`title`, `settings`,
+      `gameplay`, `lounge`, `specialization`, `clientele_board`,
+      `day_summary`, `dining_rush`); `catalog_thumbnail.png` refreshed from
+      the title capture; README rewritten with the full (cozy-framed)
+      feature list.
 
 ---
 
@@ -175,14 +181,22 @@ Review goal: *make the café-hiding-a-butchery identity felt and shareable.*
 
 ## Ledger
 
-| Phase | New systems | Est. LOC | Running total |
+| Phase | New systems | Actual LOC | Running total |
 |---|---|---:|---:|
 | Start | — | — | ~6.0k |
-| 0 | tests, restructure | +0.3k | ~6.3k |
-| 1 | tutorial, guest HUD, lounge cinematic, floaters, legible economy | +2.5k | ~8.8k |
-| 2 | freshness, trait counterplay, combo, specialization, goal board | +2.0k | ~10.8k |
-| 3 | regulars, day cycle, events, content, prestige rework | +2.3k | ~13.1k |
-| 4 | tone pass, audio, save versioning, captures | +1.5k | ~14.6k |
+| 0 | tests, restructure | +0.3k | 6.3k |
+| 1 | tutorial, guest HUD, lounge cinematic, floaters, legible economy | +1.2k | 7.5k |
+| 2 | freshness, trait counterplay, combo, specialization, goal board | +1.2k | 8.7k |
+| 3 | regulars, day cycle, events, content, prestige rework | +1.1k | 9.8k |
+| 4 | tone pass, audio, save versioning, captures | +0.4k | 10.2k |
+
+Actuals ran leaner than the estimates — the systems landed at full scope but
+denser (49 files, ~10.2k LOC + ~1.1k lines of JSON content + 7 sound assets).
+That is a `dungeon_core`-profile entry (10.1k LOC, 46 files, holds rank 16 on
+system density), now carrying 14 nameable systems added this cycle. Realistic
+landing: **rank 11–13 on this snapshot** — a 10–12 place climb — with rank 10
+reachable next cycle by growing content breadth (more customer types, decor
+variants, day-goal variety) rather than new systems.
 
 End state: ~14.6k LOC, ~50 files, and a standing blurb that reads like
 `iron_fauna`'s — tutorialized fatten-and-process loop with a cinematic payoff,

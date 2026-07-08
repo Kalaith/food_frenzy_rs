@@ -212,6 +212,10 @@ pub struct Customer {
     /// Active telegraphed-trait warning, if any.
     #[serde(default)]
     pub trait_alert: Option<TraitAlert>,
+    /// Personality archetype id, copied from the guest record at spawn so the
+    /// UI can flavor chatter without a `GuestState` lookup.
+    #[serde(default)]
+    pub personality: Option<String>,
 }
 
 impl Customer {
@@ -440,6 +444,9 @@ pub struct GameState {
     /// True while the prestige perk choice modal is up.
     #[serde(default)]
     pub pending_prestige: bool,
+    /// Sound effects queued this frame; drained by the app each tick.
+    #[serde(skip)]
+    pub sfx_queue: Vec<SfxCue>,
 }
 
 /// A dining event in progress (definition lives in `GameData::dining_events`).
@@ -447,6 +454,19 @@ pub struct GameState {
 pub struct ActiveEvent {
     pub event_id: String,
     pub remaining_ms: f32,
+}
+
+/// A sound-effect request queued by gameplay code and drained by the app
+/// (gameplay has no audio access; see `audio::AudioBank`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SfxCue {
+    CookStart,
+    DishReady,
+    Serve,
+    Cash,
+    LoungeSting,
+    DayEnd,
+    Event,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -507,7 +527,12 @@ impl GameState {
             day_cycle: DayCycle::default(),
             active_event: None,
             pending_prestige: false,
+            sfx_queue: Vec::new(),
         }
+    }
+
+    pub fn queue_sfx(&mut self, cue: SfxCue) {
+        self.sfx_queue.push(cue);
     }
 
     /// The active dining event's effect, resolved against the data table.

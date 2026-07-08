@@ -1,37 +1,96 @@
 {
   "names": [
-    "Marnie", "Lark", "Penny", "Bram", "Sora", "Rin", "Nova", "Haze",
-    "Felix", "Tara", "Lune", "Milo", "Ari", "Violet", "Clove", "Sage",
-    "Juniper", "Fable", "Wren", "Poppy", "Basil", "Hazel", "Maple", "Ives",
-    "Odette", "Percy", "Quill", "Rosie", "Saffron", "Tansy", "Umber",
-    "Vesper", "Willa", "Yarrow", "Zinnia", "Briar", "Cosmo", "Dulce",
-    "Ember", "Fennel"
+    "Marnie",
+    "Lark",
+    "Penny",
+    "Bram",
+    "Sora",
+    "Rin",
+    "Nova",
+    "Haze",
+    "Felix",
+    "Tara",
+    "Lune",
+    "Milo",
+    "Ari",
+    "Violet",
+    "Clove",
+    "Sage",
+    "Juniper",
+    "Fable",
+    "Wren",
+    "Poppy",
+    "Basil",
+    "Hazel",
+    "Maple",
+    "Ives",
+    "Odette",
+    "Percy",
+    "Quill",
+    "Rosie",
+    "Saffron",
+    "Tansy",
+    "Umber",
+    "Vesper",
+    "Willa",
+    "Yarrow",
+    "Zinnia",
+    "Briar",
+    "Cosmo",
+    "Dulce",
+    "Ember",
+    "Fennel"
   ],
   "personalities": [
     {
       "id": "cheerful",
       "arrival": "bounces in humming a little tune",
-      "farewell": "They were always smiling. The kitchen remembers."
+      "farewell": "They were always smiling. The kitchen remembers.",
+      "chatter": [
+        "This place always smells amazing!",
+        "Best seat in the house~",
+        "I could stay here forever!"
+      ]
     },
     {
       "id": "shy",
       "arrival": "slips in quietly and hopes for their usual corner",
-      "farewell": "They never made a fuss. Not even at the end."
+      "farewell": "They never made a fuss. Not even at the end.",
+      "chatter": [
+        "...it's quiet here. I like it.",
+        "Just my usual, please...",
+        "(happy nibbling)"
+      ]
     },
     {
       "id": "haughty",
       "arrival": "sweeps in expecting the best table",
-      "farewell": "They demanded the finest. Tonight, they are the finest."
+      "farewell": "They demanded the finest. Tonight, they are the finest.",
+      "chatter": [
+        "The service had better be prompt.",
+        "Hmph. Acceptable.",
+        "I expect the freshest plate."
+      ]
     },
     {
       "id": "dreamy",
       "arrival": "drifts in gazing at the string lights",
-      "farewell": "They always said this place felt like a dream."
+      "farewell": "They always said this place felt like a dream.",
+      "chatter": [
+        "The lights look like little stars...",
+        "What a lovely evening...",
+        "I had the strangest dream about this place."
+      ]
     },
     {
       "id": "gluttonous",
       "arrival": "arrives already asking about dessert",
-      "farewell": "They ate well. Exceptionally well. That was the point."
+      "farewell": "They ate well. Exceptionally well. That was the point.",
+      "chatter": [
+        "Is there a dessert course? There should be.",
+        "Seconds! No - thirds!",
+        "I skipped lunch for this."
+      ]
     }
   ]
 }

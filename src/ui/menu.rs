@@ -157,7 +157,7 @@ fn draw_toggle(rect: Rect, enabled: bool) {
     );
 }
 
-pub fn draw_settings_screen(fullscreen_enabled: bool) -> SettingsActions {
+pub fn draw_settings_screen(fullscreen_enabled: bool, sound_enabled: bool) -> SettingsActions {
     let width = screen_width();
     let height = screen_height();
     clear_background(BACKGROUND);
@@ -168,20 +168,38 @@ pub fn draw_settings_screen(fullscreen_enabled: bool) -> SettingsActions {
 
     let content_w = width.min(720.0);
     let content_x = (width - content_w) * 0.5;
-    let row = Rect::new(content_x + 24.0, height * 0.32, content_w - 48.0, 78.0);
     let row_surface = macroquad_toolkit::ui::SurfaceStyle::new(PANEL)
         .with_border(1.0, Color::new(0.20, 0.20, 0.22, 1.0));
+
+    let row = Rect::new(content_x + 24.0, height * 0.32, content_w - 48.0, 78.0);
     macroquad_toolkit::ui::draw_surface(row, &row_surface);
     draw_ui_text("Fullscreen", row.x + 24.0, row.y + 48.0, 24.0, TEXT);
-
     let toggle = Rect::new(row.x + row.w - 142.0, row.y + 16.0, 112.0, 46.0);
     draw_toggle(toggle, fullscreen_enabled);
+
+    let sound_row = Rect::new(row.x, row.y + row.h + 16.0, row.w, 78.0);
+    macroquad_toolkit::ui::draw_surface(sound_row, &row_surface);
+    draw_ui_text(
+        "Sound Effects",
+        sound_row.x + 24.0,
+        sound_row.y + 48.0,
+        24.0,
+        TEXT,
+    );
+    let sound_toggle = Rect::new(
+        sound_row.x + sound_row.w - 142.0,
+        sound_row.y + 16.0,
+        112.0,
+        46.0,
+    );
+    draw_toggle(sound_toggle, sound_enabled);
 
     let back = Rect::new(content_x + 24.0, height - 112.0, 180.0, 54.0);
     draw_menu_button(back, "Back");
 
     SettingsActions {
         fullscreen_toggle: row,
+        sound_toggle: sound_row,
         back,
     }
 }

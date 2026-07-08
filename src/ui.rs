@@ -1,6 +1,7 @@
 //! Macroquad UI drawing and hitbox collection for Feast Frenzy.
 
 mod actors;
+mod ambience;
 mod clientele_board;
 mod common;
 mod day_summary;

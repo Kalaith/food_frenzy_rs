@@ -157,6 +157,7 @@ pub(super) fn draw_dining_room(
     } else {
         room::draw_floor_pattern(floor);
     }
+    super::ambience::draw_tier_tone(floor, progression, data);
     room::draw_room_fixtures(floor);
     if let Some(sheet) = interior_sheet {
         room::draw_room_decor(floor, sheet);
@@ -279,6 +280,7 @@ pub(super) fn draw_dining_room(
         );
     }
 
+    super::ambience::draw_ambient_chatter(floor, game, data);
     draw_combo_meter(floor, game, progression, data);
     draw_day_clock(floor, game, data);
     draw_event_banner(floor, game, data);
