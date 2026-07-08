@@ -114,8 +114,10 @@ fn try_spawn_customer(
         depart_timer_ms: 0.0,
         order,
         times_fed,
+        trait_alert: None,
     });
     guest_state.record_guest_visit(&guest_record.id);
+    game_state.full_room_bonus_armed = true;
     if times_fed >= crate::engine::visits_until_ready_for(data, &customer_type.id) {
         game_state.add_message(format!(
             "{} waddles back in, plump and ready. The Lounge awaits.",

@@ -1,9 +1,11 @@
+use super::clientele_board::draw_clientele_board;
 use super::common::{draw_resource_tile, draw_tooltip, BACKGROUND, GOLD, LINE};
 use super::dining::draw_dining_room;
 use super::floaters::draw_floaters;
 use super::growth::{draw_event_feed, draw_growth_panel};
 use super::kitchen::draw_kitchen;
 use super::lounge::draw_processing_overlay;
+use super::specialization::draw_specialization_modal;
 use super::tutorial_panel::draw_tutorial_panel;
 use super::types::UiActions;
 use crate::data::GameData;
@@ -187,7 +189,10 @@ pub fn draw_and_collect_hitboxes(
     draw_event_feed(feed, game);
     draw_floaters(floor, game);
     draw_tutorial_panel(floor, game, data, &mut ui);
-    // Drawn last: the processing sequence owns the whole screen while active.
+    // Full-screen overlays, back to front; the processing sequence owns the
+    // whole screen while active.
+    draw_clientele_board(game, progression, data, &mut ui);
+    draw_specialization_modal(game, progression, data, &mut ui);
     draw_processing_overlay(game);
 
     ui

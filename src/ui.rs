@@ -1,6 +1,7 @@
 //! Macroquad UI drawing and hitbox collection for Feast Frenzy.
 
 mod actors;
+mod clientele_board;
 mod common;
 mod dining;
 mod floaters;
@@ -10,6 +11,7 @@ mod kitchen;
 mod layout;
 mod lounge;
 mod menu;
+mod specialization;
 mod sprites;
 mod tutorial_panel;
 mod types;

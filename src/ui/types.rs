@@ -14,6 +14,11 @@ pub struct UiActions {
     pub clear_selection: Option<Rect>,
     pub tutorial_next: Option<Rect>,
     pub tutorial_skip: Option<Rect>,
+    pub specialization_buttons: HashMap<String, Rect>,
+    pub clientele_board_toggle: Option<Rect>,
+    /// True while a full-screen overlay (specialization choice, clientele
+    /// board) is up: only that overlay's own hitboxes accept clicks.
+    pub modal_open: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

@@ -38,5 +38,12 @@
     3,
     4,
     5
-  ]
+  ],
+  "dish_fresh_window_ms": 12000,
+  "dish_spoil_ms": 32000,
+  "fresh_bill_bonus_multiplier": 1.25,
+  "trait_telegraph_ms": 5000,
+  "combo_milestone_interval": 5,
+  "combo_milestone_cash": 12,
+  "full_room_bonus_points": 40
 }

@@ -21,6 +21,9 @@ impl ProgressionState {
             overfed_customer_count: 0,
             customers_lost: 0,
             unlocked_customer_types: starting_customer_type_ids(data),
+            specialization: None,
+            specialization_effects: HashMap::new(),
+            seen_trait_hints: Vec::new(),
         };
 
         state.ensure_customer_unlocks(data);
@@ -85,12 +88,34 @@ impl ProgressionState {
                 total += value * upgrade.level as f64;
             }
         }
+        if let Some(value) = self.specialization_effects.get(key) {
+            total += value;
+        }
 
         if (fallback - 1.0).abs() < f64::EPSILON {
             total.max(0.25)
         } else {
             total
         }
+    }
+
+    /// Commit to a house style. One choice per run; prestige clears it.
+    pub fn choose_specialization(&mut self, def: &crate::data::SpecializationDef) -> bool {
+        if self.specialization.is_some() {
+            return false;
+        }
+        self.specialization = Some(def.id.clone());
+        self.specialization_effects = def.effects.clone();
+        true
+    }
+
+    /// True the first time a trait key is reported; marks it seen.
+    pub fn note_trait_encounter(&mut self, trait_key: &str) -> bool {
+        if self.seen_trait_hints.iter().any(|seen| seen == trait_key) {
+            return false;
+        }
+        self.seen_trait_hints.push(trait_key.to_string());
+        true
     }
 
     pub fn set_upgrade_costs(&mut self) {
@@ -284,6 +309,8 @@ impl ProgressionState {
         self.overfed_customer_count = 0;
         self.customers_lost = 0;
         self.unlocked_customer_types = starting_customer_type_ids(data);
+        self.specialization = None;
+        self.specialization_effects.clear();
 
         self.upgrades = data.upgrades.clone();
         self.recipes = data.recipes.clone();

@@ -207,6 +207,7 @@ mod tests {
             depart_timer_ms: 0.0,
             order,
             times_fed,
+            trait_alert: None,
         }
     }
 

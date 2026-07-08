@@ -1,0 +1,34 @@
+[
+  {
+    "id": "carnivores-corner",
+    "name": "Carnivore's Corner",
+    "description": "A house that celebrates the main event. Richer yields from the Lounge, but the heavier menu tests patience.",
+    "flavor": "The regulars say the roasts here taste almost... familiar.",
+    "effects": {
+      "meat_yield_multiplier": 0.2,
+      "patience_multiplier": -0.1
+    }
+  },
+  {
+    "id": "sweet-parlor",
+    "name": "Sweet Parlor",
+    "description": "Pastel frosting over everything. Guests linger happily and tip well, but the delicate kitchen cooks slower.",
+    "flavor": "No one suspects a place with doilies.",
+    "effects": {
+      "patience_multiplier": 0.15,
+      "combo_multiplier": 0.25,
+      "cook_time_multiplier": 0.1
+    }
+  },
+  {
+    "id": "rustic-hearth",
+    "name": "Rustic Hearth",
+    "description": "A crackling fire and hearty portions. The kitchen runs hot and fast, but hungry crowds arrive relentlessly.",
+    "flavor": "Keep the pot full and nobody asks what is in it.",
+    "effects": {
+      "cook_time_multiplier": -0.12,
+      "spawn_interval_multiplier": -0.15,
+      "satisfaction_decay_multiplier": 0.1
+    }
+  }
+]

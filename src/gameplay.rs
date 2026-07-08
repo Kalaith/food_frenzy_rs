@@ -1,8 +1,8 @@
 use crate::data::{GameData, TutorialTrigger};
 use crate::engine::{
-    can_process_customer, cooking_time_ms, overfeed_multiplier, recipe_capacity_gain,
-    recipe_value_multiplier, serving_bill, serving_gain, serving_points, vip_meat_gain, vip_points,
-    visits_until_ready_for,
+    can_process_customer, classify_dish_age, cooking_time_ms, freshness_bill_multiplier,
+    overfeed_multiplier, recipe_capacity_gain, recipe_value_multiplier, serving_bill, serving_gain,
+    serving_points, vip_meat_gain, vip_points, visits_until_ready_for, Freshness,
 };
 use crate::state::{
     FloaterAnchor, FloaterKind, GameState, GuestState, ProcessingCinematic, ProgressionState,
@@ -89,14 +89,15 @@ pub fn serve_customer(
         return false;
     };
 
-    let dish_name = {
+    let (dish_name, dish_freshness) = {
         let Some(station) = game_state.station_mut(station_color) else {
             return false;
         };
         if station.dishes.is_empty() {
             return false;
         }
-        station.dishes.remove(0)
+        let dish = station.dishes.remove(0);
+        (dish.name, classify_dish_age(dish.age_ms, &data.balance))
     };
 
     let (satisfaction_gain, delicious_gain, preferred) = {
@@ -124,7 +125,8 @@ pub fn serve_customer(
     let is_overfed = game_state.customers[pos].overfed;
     let score_gain = serving_points(data, satisfaction_gain, preferred) as f64;
     let total_gain = add_score(game_state, progression, score_gain, true);
-    let bill_gain = serving_bill(data, preferred);
+    let fresh_multiplier = freshness_bill_multiplier(dish_freshness, &data.balance);
+    let bill_gain = ((serving_bill(data, preferred) as f64) * fresh_multiplier).round() as i64;
     let (course_label, courses_done, courses_total, running_tab) = {
         let customer = &mut game_state.customers[pos];
         customer.order[course_idx].served = true;
@@ -148,17 +150,63 @@ pub fn serve_customer(
         let customer = &game_state.customers[pos];
         (customer.floor_x, customer.floor_y)
     };
-    let gain_text = if preferred {
-        format!("+{total_gain} renown  (loved it!)")
-    } else {
-        format!("+{total_gain} renown")
+    let gain_text = match (preferred, dish_freshness) {
+        (true, Freshness::Fresh) => format!("+{total_gain} renown  (loved it, fresh!)"),
+        (true, _) => format!("+{total_gain} renown  (loved it!)"),
+        (false, Freshness::Fresh) => format!("+{total_gain} renown  (fresh)"),
+        (false, _) => format!("+{total_gain} renown"),
     };
     game_state
         .floaters
         .spawn_at(gain_text, FloaterKind::Renown, floor_x, floor_y);
     game_state.tutorial_observe(TutorialTrigger::CourseServed, data);
+    award_streak_bonuses(data, game_state, progression, floor_x, floor_y);
 
     true
+}
+
+/// Combo-milestone cash and the full-house renown bonus (every seated order
+/// complete at once). Called after each successful serve.
+fn award_streak_bonuses(
+    data: &GameData,
+    game_state: &mut GameState,
+    progression: &mut ProgressionState,
+    floor_x: f32,
+    floor_y: f32,
+) {
+    let interval = data.balance.combo_milestone_interval.max(2);
+    if game_state.combo > 0 && game_state.combo.is_multiple_of(interval) {
+        let bonus = data.balance.combo_milestone_cash * i64::from(game_state.combo / interval);
+        progression.add_currency(bonus);
+        game_state.floaters.spawn_at(
+            format!("Streak x{}! +${bonus}", game_state.combo),
+            FloaterKind::Cash,
+            floor_x,
+            floor_y,
+        );
+        game_state.add_message(format!(
+            "Service streak x{} pays a ${bonus} bonus.",
+            game_state.combo
+        ));
+    }
+
+    if game_state.full_room_bonus_armed
+        && !game_state.customers.is_empty()
+        && game_state
+            .customers
+            .iter()
+            .all(|customer| customer.order_complete())
+    {
+        game_state.full_room_bonus_armed = false;
+        let points = data.balance.full_room_bonus_points * game_state.customers.len().max(1) as i64;
+        let awarded = add_score(game_state, progression, points as f64, false);
+        game_state.floaters.spawn(
+            format!("Full house served! +{awarded} renown"),
+            FloaterKind::Renown,
+            FloaterAnchor::Header,
+        );
+        game_state.add_message("Every table served at once - the room applauds.".to_string());
+    }
 }
 
 pub fn invite_customer_to_vip(

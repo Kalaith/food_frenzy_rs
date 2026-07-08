@@ -1,5 +1,9 @@
 //! Core gameplay helpers used by the Macroquad simulation loop.
 
+mod freshness;
+
+pub use freshness::{classify_dish_age, freshness_bill_multiplier, seconds_until_stale, Freshness};
+
 use crate::data::{CustomerSpecialTraits, DishType, GameBalance, GameData};
 use crate::state::{Course, Customer, ProgressionState, Satisfaction};
 

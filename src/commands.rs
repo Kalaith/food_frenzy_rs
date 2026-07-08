@@ -24,6 +24,8 @@ pub enum UiCommand {
     ClearSelection,
     TutorialNext,
     TutorialSkip,
+    ChooseSpecialization(String),
+    ToggleClienteleBoard,
 }
 
 pub fn read_title_action(ui_hits: &TitleActions) -> Option<TitleAction> {
@@ -48,6 +50,20 @@ pub fn read_input_action(ui_hits: UiActions) -> Option<UiCommand> {
     }
 
     let click = vec2(mouse_position().0, mouse_position().1);
+    // Modal overlays first: they cover the rest of the screen.
+    if let Some(id) = find_map_hit(ui_hits.specialization_buttons, click) {
+        return Some(UiCommand::ChooseSpecialization(id));
+    }
+    if ui_hits
+        .clientele_board_toggle
+        .is_some_and(|rect| rect.contains(click))
+    {
+        return Some(UiCommand::ToggleClienteleBoard);
+    }
+    if ui_hits.modal_open {
+        // Overlay owns the screen: only its attract buttons remain live.
+        return find_map_hit(ui_hits.attract_buttons, click).map(UiCommand::AttractCustomer);
+    }
     if ui_hits
         .tutorial_next
         .is_some_and(|rect| rect.contains(click))
@@ -161,6 +177,22 @@ pub fn apply_ui_command(
         UiCommand::TutorialSkip => {
             game_state.tutorial.skip();
             game_state.add_message("Tutorial skipped. The kitchen is yours.".to_string());
+        }
+        UiCommand::ChooseSpecialization(specialization_id) => {
+            let Some(def) = data.specialization_by_id(&specialization_id) else {
+                return;
+            };
+            if progression_state.choose_specialization(def) {
+                game_state.add_message(format!("The house is now {}. {}", def.name, def.flavor));
+                game_state.floaters.spawn(
+                    format!("House style: {}", def.name),
+                    crate::state::FloaterKind::Renown,
+                    crate::state::FloaterAnchor::Header,
+                );
+            }
+        }
+        UiCommand::ToggleClienteleBoard => {
+            game_state.show_clientele_board = !game_state.show_clientele_board;
         }
     }
 }

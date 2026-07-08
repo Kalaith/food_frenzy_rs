@@ -278,4 +278,53 @@ pub(super) fn draw_dining_room(
             MUTED,
         );
     }
+
+    draw_combo_meter(floor, game, progression, data);
+}
+
+/// Visible service-streak meter: the combo multiplier the score math already
+/// applies, plus progress toward the next streak cash bonus.
+fn draw_combo_meter(
+    floor: Rect,
+    game: &GameState,
+    progression: &ProgressionState,
+    data: &GameData,
+) {
+    if game.combo == 0 {
+        return;
+    }
+    let boost = progression.get_effect("combo_multiplier", 1.0);
+    let multiplier = 1.0 + f64::from(game.combo) * 0.1 * boost;
+    let rect = Rect::new(floor.x + floor.w - 178.0, floor.y + 12.0, 164.0, 44.0);
+    draw_rectangle(
+        rect.x,
+        rect.y,
+        rect.w,
+        rect.h,
+        Color::new(0.04, 0.035, 0.04, 0.88),
+    );
+    draw_rectangle_lines(rect.x, rect.y, rect.w, rect.h, 1.5, GOLD);
+    draw_ui_text(
+        &format!("Combo x{}  ({:.1}x renown)", game.combo, multiplier),
+        rect.x + 10.0,
+        rect.y + 18.0,
+        14.0,
+        TEXT,
+    );
+    let interval = data.balance.combo_milestone_interval.max(2);
+    let toward_next = game.combo % interval;
+    draw_rectangle(
+        rect.x + 10.0,
+        rect.y + 28.0,
+        rect.w - 20.0,
+        6.0,
+        Color::new(0.16, 0.13, 0.15, 1.0),
+    );
+    draw_rectangle(
+        rect.x + 10.0,
+        rect.y + 28.0,
+        (rect.w - 20.0) * (toward_next as f32 / interval as f32),
+        6.0,
+        GOLD,
+    );
 }

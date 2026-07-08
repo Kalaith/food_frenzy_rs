@@ -2,7 +2,10 @@
   {
     "id": "pig",
     "name": "Pig Girl",
-    "preferred_dishes": ["blue", "red"],
+    "preferred_dishes": [
+      "blue",
+      "red"
+    ],
     "base_deliciousness": 2,
     "description": "Loves hearty main courses and sweet desserts",
     "initially_unlocked": true,
@@ -12,18 +15,24 @@
   {
     "id": "cow",
     "name": "Cow Girl",
-    "preferred_dishes": ["green", "yellow"],
+    "preferred_dishes": [
+      "green",
+      "yellow"
+    ],
     "base_deliciousness": 3,
     "description": "Enjoys soups and substantial meals",
     "profile_tier": 2,
     "unlock_cost": {
-      "pig-meat": 6
+      "pig-meat": 4
     }
   },
   {
     "id": "sheep",
     "name": "Sheep Girl",
-    "preferred_dishes": ["blue", "green"],
+    "preferred_dishes": [
+      "blue",
+      "green"
+    ],
     "base_deliciousness": 2,
     "description": "Prefers light appetizers and warm soups",
     "initially_unlocked": true,
@@ -33,7 +42,10 @@
   {
     "id": "rabbit",
     "name": "Rabbit Girl",
-    "preferred_dishes": ["blue", "red"],
+    "preferred_dishes": [
+      "blue",
+      "red"
+    ],
     "base_deliciousness": 1,
     "description": "Loves appetizers and desserts",
     "initially_unlocked": true,
@@ -43,7 +55,10 @@
   {
     "id": "cat",
     "name": "Cat Girl",
-    "preferred_dishes": ["yellow", "blue"],
+    "preferred_dishes": [
+      "yellow",
+      "blue"
+    ],
     "base_deliciousness": 4,
     "description": "Enjoys main courses and appetizers",
     "profile_tier": 2,
@@ -55,7 +70,10 @@
   {
     "id": "deer",
     "name": "Deer Girl",
-    "preferred_dishes": ["green", "blue"],
+    "preferred_dishes": [
+      "green",
+      "blue"
+    ],
     "base_deliciousness": 3,
     "description": "Polite and shy, prefers fresh greens and forest-inspired dishes",
     "profile_tier": 2,
@@ -70,7 +88,10 @@
   {
     "id": "duck",
     "name": "Duck Girl",
-    "preferred_dishes": ["yellow", "green"],
+    "preferred_dishes": [
+      "yellow",
+      "green"
+    ],
     "base_deliciousness": 2,
     "description": "Quirky and loud, loves bread-based meals and waterfowl-friendly soups",
     "profile_tier": 2,
@@ -85,7 +106,10 @@
   {
     "id": "chicken",
     "name": "Chicken Girl",
-    "preferred_dishes": ["yellow", "red"],
+    "preferred_dishes": [
+      "yellow",
+      "red"
+    ],
     "base_deliciousness": 2,
     "description": "Nervous and fussy, prefers grain-based meals and fried snacks",
     "profile_tier": 2,
@@ -100,7 +124,10 @@
   {
     "id": "fish",
     "name": "Fish Girl",
-    "preferred_dishes": ["blue", "green"],
+    "preferred_dishes": [
+      "blue",
+      "green"
+    ],
     "base_deliciousness": 4,
     "description": "Laid-back and cool, enjoys seaweed, sushi, and lighter fare",
     "profile_tier": 3,
@@ -115,7 +142,10 @@
   {
     "id": "fox",
     "name": "Fox Girl",
-    "preferred_dishes": ["red", "yellow"],
+    "preferred_dishes": [
+      "red",
+      "yellow"
+    ],
     "base_deliciousness": 3,
     "description": "Cunning and playful, loves spicy dishes and street food",
     "profile_tier": 3,
@@ -130,7 +160,10 @@
   {
     "id": "goat",
     "name": "Goat Girl",
-    "preferred_dishes": ["green", "yellow"],
+    "preferred_dishes": [
+      "green",
+      "yellow"
+    ],
     "base_deliciousness": 2,
     "description": "Stubborn and quirky, enjoys chewy foods and herbs",
     "profile_tier": 3,
@@ -145,7 +178,10 @@
   {
     "id": "bear",
     "name": "Bear Girl",
-    "preferred_dishes": ["red", "yellow"],
+    "preferred_dishes": [
+      "red",
+      "yellow"
+    ],
     "base_deliciousness": 5,
     "description": "Big appetite and warm demeanor, loves honey desserts and hearty stews",
     "profile_tier": 4,
@@ -161,7 +197,10 @@
   {
     "id": "monkey",
     "name": "Monkey Girl",
-    "preferred_dishes": ["red", "blue"],
+    "preferred_dishes": [
+      "red",
+      "blue"
+    ],
     "base_deliciousness": 2,
     "description": "Energetic and cheeky, prefers fruits and finger foods",
     "profile_tier": 4,

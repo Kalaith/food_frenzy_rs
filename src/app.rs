@@ -97,6 +97,21 @@ impl App {
         match scene {
             "title" => self.app_screen = AppScreen::Title,
             "settings" => self.app_screen = AppScreen::Settings,
+            "clientele_board" => {
+                self.start_new_game();
+                self.seed_gameplay_demo();
+                self.game_state.show_clientele_board = true;
+            }
+            "specialization" => {
+                // First processing just happened and no style chosen yet:
+                // the house-style modal is up.
+                self.start_new_game();
+                self.seed_gameplay_demo();
+                self.game_state.tutorial.skip();
+                self.progression_state
+                    .processed_customer_counts
+                    .insert("pig".to_string(), 1);
+            }
             "lounge" => {
                 // The processing sequence mid-reveal, for verifying the
                 // dramatized payoff without playing to a first processing.

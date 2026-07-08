@@ -223,20 +223,24 @@ fn draw_recipe_station(
     );
 
     let ready = station.dishes.len();
-    let status = if ready > 0 {
-        "Ready to serve"
+    // The pass has a clock now: show the oldest plated dish's freshness.
+    let (status, status_color) = if let Some(oldest) = station.dishes.first() {
+        match crate::engine::classify_dish_age(oldest.age_ms, &data.balance) {
+            crate::engine::Freshness::Fresh => (
+                format!(
+                    "Fresh ({:.0}s)",
+                    crate::engine::seconds_until_stale(oldest.age_ms, &data.balance)
+                ),
+                SUCCESS,
+            ),
+            _ => ("Going stale - serve it!".to_string(), ORANGE),
+        }
     } else if station.is_cooking {
-        "Cooking"
+        ("Cooking".to_string(), MUTED)
     } else {
-        "Ready to cook"
+        ("Ready to cook".to_string(), MUTED)
     };
-    draw_ui_text(
-        status,
-        text_x,
-        row.y + row.h * 0.63,
-        14.0,
-        if ready > 0 { SUCCESS } else { MUTED },
-    );
+    draw_ui_text(&status, text_x, row.y + row.h * 0.63, 14.0, status_color);
     draw_station_dots(
         text_x,
         row.y + row.h - 14.0,

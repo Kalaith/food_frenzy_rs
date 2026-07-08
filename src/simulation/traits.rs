@@ -1,19 +1,26 @@
-//! Special-trait ticks: wandering guests changing tables, foxes stealing from
-//! the pass, monkeys throwing food when unhappy, and fast-spoilage decay.
+//! Special-trait situations with counterplay. Telegraphed traits (fox steal,
+//! monkey tantrum, wandering) arm a visible warning and only fire if the
+//! player doesn't answer within the window; passive traits (fast spoilage)
+//! tick as before. First encounters surface a one-time hint from
+//! `assets/data/trait_behaviors.json`.
 
 use crate::data::GameData;
 use crate::engine::{
     chance, max_customer_count, CAN_WANDER_CHANCE, FOX_STEAL_CHANCE, MONKEY_THROW_CHANCE,
 };
 use crate::gameplay::dish_display_name;
-use crate::state::{GameState, ProgressionState, Timers};
+use crate::state::{FloaterKind, GameState, ProgressionState, Timers, TraitAlert};
 use std::collections::HashSet;
+
+/// Monkeys tantrum only below this satisfaction; feeding them above it during
+/// the telegraph window is the counterplay.
+pub const MONKEY_CRANKY_THRESHOLD: f32 = 60.0;
 
 pub(super) fn update_traits(
     data: &GameData,
     game_state: &mut GameState,
     timers: &mut Timers,
-    progression: &ProgressionState,
+    progression: &mut ProgressionState,
 ) {
     let tick = data.balance.trait_tick_interval;
     if tick <= 0.0 || game_state.customers.is_empty() {
@@ -21,85 +28,189 @@ pub(super) fn update_traits(
         return;
     }
 
-    let max_tables = max_customer_count(data, progression);
-    let mut occupied = occupied_tables(game_state, max_tables);
     let trait_tick = tick;
     while timers.trait_accum_ms >= trait_tick {
         timers.trait_accum_ms -= trait_tick;
         for index in 0..game_state.customers.len() {
-            apply_customer_traits(index, data, game_state, max_tables, &mut occupied);
+            tick_customer_traits(index, data, game_state, progression);
         }
     }
 }
 
-fn apply_customer_traits(
+/// Roll each guest's traits once per tick: passive effects apply immediately;
+/// telegraphed ones arm a warning instead of firing.
+fn tick_customer_traits(
     index: usize,
     data: &GameData,
     game_state: &mut GameState,
-    max_tables: usize,
-    occupied: &mut HashSet<usize>,
+    progression: &mut ProgressionState,
 ) {
     let traits = game_state.customers[index].traits(data);
-    if traits.can_wander && chance(CAN_WANDER_CHANCE) && max_tables > 0 {
-        move_customer_to_empty_table(index, game_state, max_tables, occupied);
-    }
-
-    if traits.can_steal_food && chance(FOX_STEAL_CHANCE) {
-        if let Some((station_color, dish_name)) = steal_or_throw_dish(game_state) {
-            let station_name = dish_display_name(data, &station_color);
-            game_state.add_message(format!(
-                "{} stole {dish_name} from {station_name}",
-                game_state.customers[index].display_name
-            ));
-        }
-    }
-
-    if traits.throws_food
-        && chance(MONKEY_THROW_CHANCE)
-        && game_state.customers[index].total_satisfaction < 60.0
-        && game_state.customers[index].total_satisfaction > 0.0
-    {
-        if let Some((station_color, dish_name)) = steal_or_throw_dish(game_state) {
-            let display_name = &game_state.customers[index].display_name;
-            let station_name = dish_display_name(data, &station_color);
-            game_state.add_message(format!(
-                "{display_name} threw away {dish_name} from {station_name}"
-            ));
-            game_state.combo = 0;
-        }
-    }
 
     if traits.fast_spoilage {
         game_state.customers[index].satisfaction.decay_all(2.0);
         game_state.customers[index].refresh_totals();
+        surface_first_encounter_hint("fast_spoilage", index, data, game_state, progression);
+    }
+
+    if !game_state.customers[index].is_seated || game_state.customers[index].trait_alert.is_some() {
+        return;
+    }
+
+    let armed_key =
+        if traits.can_steal_food && chance(FOX_STEAL_CHANCE) && any_plated_dish(game_state) {
+            Some("can_steal_food")
+        } else if traits.throws_food
+            && chance(MONKEY_THROW_CHANCE)
+            && game_state.customers[index].total_satisfaction < MONKEY_CRANKY_THRESHOLD
+            && game_state.customers[index].total_satisfaction > 0.0
+        {
+            Some("throws_food")
+        } else if traits.can_wander && chance(CAN_WANDER_CHANCE) {
+            Some("can_wander")
+        } else {
+            None
+        };
+
+    let Some(trait_key) = armed_key else {
+        return;
+    };
+    let courses_served = game_state.customers[index].courses_served();
+    game_state.customers[index].trait_alert = Some(TraitAlert {
+        trait_key: trait_key.to_string(),
+        remaining_ms: data.balance.trait_telegraph_ms.max(500.0),
+        courses_served_at_arm: courses_served,
+    });
+    if let Some(behavior) = data.trait_behavior(trait_key) {
+        let name = game_state.customers[index].display_name.clone();
+        game_state.add_message(format!("{name} is {}", behavior.telegraph));
+    }
+    surface_first_encounter_hint(trait_key, index, data, game_state, progression);
+}
+
+fn surface_first_encounter_hint(
+    trait_key: &str,
+    index: usize,
+    data: &GameData,
+    game_state: &mut GameState,
+    progression: &mut ProgressionState,
+) {
+    if !progression.note_trait_encounter(trait_key) {
+        return;
+    }
+    let Some(behavior) = data.trait_behavior(trait_key) else {
+        return;
+    };
+    let (x, y) = {
+        let customer = &game_state.customers[index];
+        (customer.floor_x, customer.floor_y)
+    };
+    game_state.floaters.spawn_at(
+        format!("New trait: {}", behavior.name),
+        FloaterKind::Alert,
+        x,
+        y,
+    );
+    game_state.add_message(format!("{}: {}", behavior.name, behavior.hint));
+}
+
+/// Count down armed warnings every frame and resolve the ones whose window
+/// closed — either the consequence fires or the counterplay averted it.
+pub(super) fn update_trait_alerts(
+    dt_ms: f32,
+    data: &GameData,
+    game_state: &mut GameState,
+    progression: &ProgressionState,
+) {
+    let mut expired = Vec::new();
+    for (index, customer) in game_state.customers.iter_mut().enumerate() {
+        if let Some(alert) = &mut customer.trait_alert {
+            alert.remaining_ms -= dt_ms;
+            if alert.remaining_ms <= 0.0 {
+                expired.push(index);
+            }
+        }
+    }
+
+    let max_tables = max_customer_count(data, progression);
+    for index in expired {
+        let Some(alert) = game_state.customers[index].trait_alert.take() else {
+            continue;
+        };
+        resolve_alert(index, &alert, data, game_state, max_tables);
     }
 }
 
-fn move_customer_to_empty_table(
+fn resolve_alert(
     index: usize,
+    alert: &TraitAlert,
+    data: &GameData,
     game_state: &mut GameState,
     max_tables: usize,
-    occupied: &mut HashSet<usize>,
 ) {
+    let name = game_state.customers[index].display_name.clone();
+    let (x, y) = {
+        let customer = &game_state.customers[index];
+        (customer.floor_x, customer.floor_y)
+    };
+    match alert.trait_key.as_str() {
+        "can_steal_food" => {
+            // Counterplay: their order got finished, or the pass was cleared.
+            if game_state.customers[index].order_complete() || !any_plated_dish(game_state) {
+                game_state.add_message(format!("{name} found nothing to swipe."));
+                return;
+            }
+            if let Some((station_color, dish_name)) = steal_dish(game_state) {
+                let station_name = dish_display_name(data, &station_color);
+                game_state
+                    .floaters
+                    .spawn_at("stole a dish!", FloaterKind::Alert, x, y);
+                game_state.add_message(format!("{name} stole {dish_name} from {station_name}!"));
+            }
+        }
+        "throws_food" => {
+            // Counterplay: satisfaction raised above the cranky threshold.
+            if game_state.customers[index].total_satisfaction >= MONKEY_CRANKY_THRESHOLD {
+                game_state.add_message(format!("{name} settled down, belly full."));
+                return;
+            }
+            if let Some((station_color, dish_name)) = steal_dish(game_state) {
+                let station_name = dish_display_name(data, &station_color);
+                game_state.combo = 0;
+                game_state
+                    .floaters
+                    .spawn_at("tantrum! combo lost", FloaterKind::Alert, x, y);
+                game_state.add_message(format!("{name} threw {dish_name} from {station_name}!"));
+            }
+        }
+        "can_wander" => {
+            // Counterplay: any course served during the window settles them.
+            if game_state.customers[index].courses_served() > alert.courses_served_at_arm {
+                game_state.add_message(format!("{name} settled in after that course."));
+                return;
+            }
+            move_customer_to_empty_table(index, game_state, max_tables);
+        }
+        _ => {}
+    }
+}
+
+fn any_plated_dish(game_state: &GameState) -> bool {
+    game_state
+        .cooking_stations
+        .values()
+        .any(|station| !station.dishes.is_empty())
+}
+
+fn move_customer_to_empty_table(index: usize, game_state: &mut GameState, max_tables: usize) {
+    let occupied = occupied_tables(game_state, max_tables);
     let empty_tables: Vec<usize> = (0..max_tables)
-        .filter(|idx| !occupied.contains(idx))
+        .filter(|table| !occupied.contains(table))
         .collect();
     let Some(next) = macroquad_toolkit::rng::choose(&empty_tables).copied() else {
         return;
     };
-    let Some(previous) = game_state
-        .customers
-        .get(index)
-        .map(|customer| customer.table_index)
-    else {
-        return;
-    };
-    if previous >= max_tables {
-        return;
-    }
 
-    occupied.remove(&previous);
-    occupied.insert(next);
     let display_name = {
         let customer = &mut game_state.customers[index];
         customer.table_index = next;
@@ -117,7 +228,7 @@ fn occupied_tables(game_state: &GameState, max_tables: usize) -> HashSet<usize> 
         .collect()
 }
 
-fn steal_or_throw_dish(game_state: &mut GameState) -> Option<(String, String)> {
+fn steal_dish(game_state: &mut GameState) -> Option<(String, String)> {
     let candidates: Vec<String> = game_state
         .cooking_stations
         .iter()
@@ -137,5 +248,5 @@ fn steal_or_throw_dish(game_state: &mut GameState) -> Option<(String, String)> {
         return None;
     }
     let dish = station.dishes.remove(0);
-    Some((station_color, dish))
+    Some((station_color, dish.name))
 }

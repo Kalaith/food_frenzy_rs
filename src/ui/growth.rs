@@ -82,6 +82,12 @@ fn draw_guest_card(
     ui: &mut UiActions,
 ) {
     draw_card(card, "Guests");
+    // Open the full clientele ladder overlay.
+    let board_button = Rect::new(card.x + card.w - 72.0, card.y + 8.0, 60.0, 24.0);
+    draw_button(board_button, "Ladder", true, false);
+    if ui.clientele_board_toggle.is_none() {
+        ui.clientele_board_toggle = Some(board_button);
+    }
     if game.customers.is_empty() {
         draw_ui_text(
             "Waiting for arrivals",

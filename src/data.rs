@@ -9,6 +9,8 @@ const RECIPES_JSON: &str = include_str!("../assets/data/recipes.json");
 const ACHIEVEMENTS_JSON: &str = include_str!("../assets/data/achievements.json");
 const GAME_BALANCE_JSON: &str = include_str!("../assets/data/game_balance.json");
 const TUTORIAL_JSON: &str = include_str!("../assets/data/tutorial.json");
+const SPECIALIZATIONS_JSON: &str = include_str!("../assets/data/specializations.json");
+const TRAIT_BEHAVIORS_JSON: &str = include_str!("../assets/data/trait_behaviors.json");
 
 pub const STATION_COLORS: [&str; 4] = ["blue", "green", "yellow", "red"];
 
@@ -125,6 +127,30 @@ pub struct TutorialStep {
     pub trigger: TutorialTrigger,
 }
 
+/// A house style the player commits to after their first processing. Effects
+/// use the same keys as upgrades and feed the same `get_effect` accumulator.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SpecializationDef {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub flavor: String,
+    pub effects: HashMap<String, f64>,
+}
+
+/// Player-facing behavior of a special trait: how it telegraphs, what the
+/// counterplay is, and the one-time hint shown on first encounter.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TraitBehavior {
+    #[serde(rename = "trait")]
+    pub trait_key: String,
+    pub name: String,
+    pub telegraph: String,
+    pub counter: String,
+    pub hint: String,
+    pub telegraphed: bool,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameBalance {
     pub customer_spawn_interval: f32,
@@ -170,6 +196,25 @@ pub struct GameBalance {
     /// when empty.
     #[serde(default)]
     pub visits_until_ready_by_tier: Vec<u32>,
+    /// Plated dishes served within this window pay the fresh bonus.
+    #[serde(default = "default_dish_fresh_window_ms")]
+    pub dish_fresh_window_ms: f32,
+    /// Plated dishes older than this are discarded from the pass.
+    #[serde(default = "default_dish_spoil_ms")]
+    pub dish_spoil_ms: f32,
+    #[serde(default = "default_fresh_bill_bonus_multiplier")]
+    pub fresh_bill_bonus_multiplier: f64,
+    /// How long a telegraphed trait warns before it resolves.
+    #[serde(default = "default_trait_telegraph_ms")]
+    pub trait_telegraph_ms: f32,
+    /// Every Nth combo pays a streak bonus.
+    #[serde(default = "default_combo_milestone_interval")]
+    pub combo_milestone_interval: u32,
+    #[serde(default = "default_combo_milestone_cash")]
+    pub combo_milestone_cash: i64,
+    /// Renown per seated guest when every table's order is complete at once.
+    #[serde(default = "default_full_room_bonus_points")]
+    pub full_room_bonus_points: i64,
 }
 
 fn default_min_courses() -> u32 {
@@ -198,6 +243,34 @@ fn default_satisfied_tip_rate() -> f64 {
 
 fn default_content_dwell_ms() -> f32 {
     4_000.0
+}
+
+fn default_dish_fresh_window_ms() -> f32 {
+    12_000.0
+}
+
+fn default_dish_spoil_ms() -> f32 {
+    32_000.0
+}
+
+fn default_fresh_bill_bonus_multiplier() -> f64 {
+    1.25
+}
+
+fn default_trait_telegraph_ms() -> f32 {
+    5_000.0
+}
+
+fn default_combo_milestone_interval() -> u32 {
+    5
+}
+
+fn default_combo_milestone_cash() -> i64 {
+    12
+}
+
+fn default_full_room_bonus_points() -> i64 {
+    40
 }
 
 impl Default for GameBalance {
@@ -234,6 +307,13 @@ impl Default for GameBalance {
             max_courses: 3,
             visits_until_ready: 5,
             visits_until_ready_by_tier: vec![2, 3, 4, 5],
+            dish_fresh_window_ms: default_dish_fresh_window_ms(),
+            dish_spoil_ms: default_dish_spoil_ms(),
+            fresh_bill_bonus_multiplier: default_fresh_bill_bonus_multiplier(),
+            trait_telegraph_ms: default_trait_telegraph_ms(),
+            combo_milestone_interval: default_combo_milestone_interval(),
+            combo_milestone_cash: default_combo_milestone_cash(),
+            full_room_bonus_points: default_full_room_bonus_points(),
         }
     }
 }
@@ -246,6 +326,8 @@ pub struct GameData {
     pub recipes: Vec<Recipe>,
     pub achievements: Vec<Achievement>,
     pub tutorial_steps: Vec<TutorialStep>,
+    pub specializations: Vec<SpecializationDef>,
+    pub trait_behaviors: Vec<TraitBehavior>,
     pub balance: GameBalance,
 }
 
@@ -258,6 +340,8 @@ impl GameData {
             recipes: parse_or_fallback(RECIPES_JSON, "[]"),
             achievements: parse_or_fallback(ACHIEVEMENTS_JSON, "[]"),
             tutorial_steps: parse_or_fallback(TUTORIAL_JSON, "[]"),
+            specializations: parse_or_fallback(SPECIALIZATIONS_JSON, "[]"),
+            trait_behaviors: parse_or_fallback(TRAIT_BEHAVIORS_JSON, "[]"),
             balance: parse_or_fallback(GAME_BALANCE_JSON, "{}"),
         }
     }
@@ -268,6 +352,16 @@ impl GameData {
 
     pub fn dish_type_by_color(&self, color: &str) -> Option<&DishType> {
         self.dish_types.iter().find(|item| item.color == color)
+    }
+
+    pub fn specialization_by_id(&self, id: &str) -> Option<&SpecializationDef> {
+        self.specializations.iter().find(|item| item.id == id)
+    }
+
+    pub fn trait_behavior(&self, trait_key: &str) -> Option<&TraitBehavior> {
+        self.trait_behaviors
+            .iter()
+            .find(|item| item.trait_key == trait_key)
     }
 }
 
@@ -312,9 +406,27 @@ mod tests {
             achievements: serde_json::from_str(ACHIEVEMENTS_JSON)
                 .expect("achievements.json must parse"),
             tutorial_steps: serde_json::from_str(TUTORIAL_JSON).expect("tutorial.json must parse"),
+            specializations: serde_json::from_str(SPECIALIZATIONS_JSON)
+                .expect("specializations.json must parse"),
+            trait_behaviors: serde_json::from_str(TRAIT_BEHAVIORS_JSON)
+                .expect("trait_behaviors.json must parse"),
             balance: serde_json::from_str(GAME_BALANCE_JSON).expect("game_balance.json must parse"),
         }
     }
+
+    // Keep in sync with the `get_effect` call sites in engine.rs/gameplay.rs;
+    // an unread effect key is a balance change that silently does nothing.
+    const KNOWN_EFFECTS: [&str; 9] = [
+        "capacity_gain_multiplier",
+        "combo_multiplier",
+        "cook_time_multiplier",
+        "max_customers_bonus",
+        "meat_yield_multiplier",
+        "patience_multiplier",
+        "recipe_value_multiplier",
+        "satisfaction_decay_multiplier",
+        "spawn_interval_multiplier",
+    ];
 
     fn meat_key(customer_type_id: &str) -> String {
         // Must match the key minted in `gameplay.rs` when a guest is processed.
@@ -483,19 +595,6 @@ mod tests {
 
     #[test]
     fn upgrade_effects_only_use_keys_the_engine_reads() {
-        // Keep in sync with the `get_effect` call sites in engine.rs/gameplay.rs;
-        // an unread effect key is a balance change that silently does nothing.
-        const KNOWN_EFFECTS: [&str; 9] = [
-            "capacity_gain_multiplier",
-            "combo_multiplier",
-            "cook_time_multiplier",
-            "max_customers_bonus",
-            "meat_yield_multiplier",
-            "patience_multiplier",
-            "recipe_value_multiplier",
-            "satisfaction_decay_multiplier",
-            "spawn_interval_multiplier",
-        ];
         let data = parsed();
         for upgrade in &data.upgrades {
             assert!(!upgrade.effects.is_empty(), "{}: no effects", upgrade.id);
@@ -551,6 +650,89 @@ mod tests {
             .visits_until_ready_by_tier
             .iter()
             .all(|visits| *visits >= 1));
+    }
+
+    #[test]
+    fn specializations_are_real_tradeoffs_on_known_effect_keys() {
+        let data = parsed();
+        assert!(data.specializations.len() >= 3, "need a real choice");
+        assert_unique_ids(
+            "specialization",
+            &data
+                .specializations
+                .iter()
+                .map(|item| item.id.as_str())
+                .collect::<Vec<_>>(),
+        );
+        for spec in &data.specializations {
+            assert!(
+                spec.effects.len() >= 2,
+                "{}: a specialization with one effect is a buff, not a trade-off",
+                spec.id
+            );
+            for key in spec.effects.keys() {
+                assert!(
+                    KNOWN_EFFECTS.contains(&key.as_str()),
+                    "{}: effect key {key} is never read by the engine",
+                    spec.id
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn trait_behaviors_cover_every_special_trait_flag() {
+        // One entry per bool on CustomerSpecialTraits, keyed by field name.
+        const TRAIT_FLAGS: [&str; 8] = [
+            "low_appetite",
+            "can_wander",
+            "multiplies_on_process",
+            "fast_spoilage",
+            "can_steal_food",
+            "can_eat_waste",
+            "high_yield",
+            "throws_food",
+        ];
+        let data = parsed();
+        for flag in TRAIT_FLAGS {
+            let behavior = data
+                .trait_behavior(flag)
+                .unwrap_or_else(|| panic!("missing trait behavior for {flag}"));
+            assert!(
+                !behavior.name.is_empty() && !behavior.hint.is_empty(),
+                "{flag}"
+            );
+            if behavior.telegraphed {
+                assert!(
+                    !behavior.telegraph.is_empty(),
+                    "{flag}: telegraphed traits need telegraph text"
+                );
+            }
+        }
+        assert_unique_ids(
+            "trait behavior",
+            &data
+                .trait_behaviors
+                .iter()
+                .map(|item| item.trait_key.as_str())
+                .collect::<Vec<_>>(),
+        );
+    }
+
+    #[test]
+    fn freshness_and_streak_tuning_is_sane() {
+        let data = parsed();
+        let balance = &data.balance;
+        assert!(balance.dish_fresh_window_ms > 0.0);
+        assert!(
+            balance.dish_spoil_ms > balance.dish_fresh_window_ms,
+            "dishes must go stale before they spoil"
+        );
+        assert!(balance.fresh_bill_bonus_multiplier >= 1.0);
+        assert!(balance.trait_telegraph_ms > 0.0);
+        assert!(balance.combo_milestone_interval >= 2);
+        assert!(balance.combo_milestone_cash > 0);
+        assert!(balance.full_room_bonus_points > 0);
     }
 
     #[test]

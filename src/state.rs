@@ -58,12 +58,48 @@ impl Satisfaction {
     }
 }
 
+/// A cooked dish waiting on the pass. Ages in real time: fresh dishes pay a
+/// bonus, spoiled ones are discarded (see `engine::freshness`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(from = "PlatedDishCompat")]
+pub struct PlatedDish {
+    pub name: String,
+    pub age_ms: f32,
+}
+
+impl PlatedDish {
+    pub fn new(name: String) -> Self {
+        Self { name, age_ms: 0.0 }
+    }
+}
+
+/// Pre-freshness saves stored plated dishes as bare strings.
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum PlatedDishCompat {
+    Current {
+        name: String,
+        #[serde(default)]
+        age_ms: f32,
+    },
+    Legacy(String),
+}
+
+impl From<PlatedDishCompat> for PlatedDish {
+    fn from(compat: PlatedDishCompat) -> Self {
+        match compat {
+            PlatedDishCompat::Current { name, age_ms } => Self { name, age_ms },
+            PlatedDishCompat::Legacy(name) => Self::new(name),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CookingStation {
     pub color: String,
     pub is_cooking: bool,
     pub remaining_ms: f32,
-    pub dishes: Vec<String>,
+    pub dishes: Vec<PlatedDish>,
 }
 
 impl CookingStation {
@@ -115,6 +151,17 @@ impl Default for PlayerActor {
     }
 }
 
+/// A telegraphed special-trait warning: the guest is about to act (steal,
+/// tantrum, wander) unless the player answers within the window.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TraitAlert {
+    pub trait_key: String,
+    pub remaining_ms: f32,
+    /// Courses served when the alert armed; a wanderer settles if any course
+    /// lands during the window.
+    pub courses_served_at_arm: usize,
+}
+
 /// One course a guest ordered (a dish color plus a display label such as
 /// "Entrée" / "Main" / "Dessert"), and whether it has been served yet.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -160,6 +207,9 @@ pub struct Customer {
     /// How many previous visits this guest was fully served (fattening progress).
     #[serde(default)]
     pub times_fed: u32,
+    /// Active telegraphed-trait warning, if any.
+    #[serde(default)]
+    pub trait_alert: Option<TraitAlert>,
 }
 
 impl Customer {
@@ -307,6 +357,17 @@ pub struct ProgressionState {
     pub customers_lost: i64,
     #[serde(default)]
     pub unlocked_customer_types: Vec<String>,
+    /// Chosen house style (see `assets/data/specializations.json`); None until
+    /// the player commits after their first processing. Reset by prestige.
+    #[serde(default)]
+    pub specialization: Option<String>,
+    /// The chosen style's effect table, copied at pick time so `get_effect`
+    /// needs no `GameData` access.
+    #[serde(default)]
+    pub specialization_effects: HashMap<String, f64>,
+    /// Trait keys whose first-encounter hint has already been shown.
+    #[serde(default)]
+    pub seen_trait_hints: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -334,6 +395,13 @@ pub struct GameState {
     /// save/load loses nothing but the show.
     #[serde(skip)]
     pub processing_cinematic: Option<ProcessingCinematic>,
+    /// Presentation-only: whether the clientele goal board overlay is open.
+    #[serde(skip)]
+    pub show_clientele_board: bool,
+    /// Armed when a guest arrives with an unserved order; consumed by the
+    /// full-house bonus when every seated order completes at once.
+    #[serde(default)]
+    pub full_room_bonus_armed: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -389,6 +457,8 @@ impl GameState {
             tutorial: TutorialProgress::default(),
             floaters: Floaters::default(),
             processing_cinematic: None,
+            show_clientele_board: false,
+            full_room_bonus_armed: false,
         }
     }
 

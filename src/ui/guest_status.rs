@@ -47,6 +47,59 @@ pub(super) fn draw_guest_meters(
     );
 
     draw_fattening_pips(pos, customer, data);
+    draw_trait_alert(pos, customer, data);
+}
+
+/// Telegraphed trait warning: what they're about to do and how long the
+/// player has to answer.
+fn draw_trait_alert(pos: Vec2, customer: &Customer, data: &GameData) {
+    let Some(alert) = &customer.trait_alert else {
+        return;
+    };
+    let Some(behavior) = data.trait_behavior(&alert.trait_key) else {
+        return;
+    };
+    let window = data.balance.trait_telegraph_ms.max(500.0);
+    let remaining = (alert.remaining_ms / window).clamp(0.0, 1.0);
+    let text = format!("! {}", behavior.telegraph);
+    let dim = measure_ui_text(&text, None, 14, 1.0);
+    let rect = Rect::new(
+        pos.x - dim.width * 0.5 - 8.0,
+        pos.y - 152.0,
+        dim.width + 16.0,
+        24.0,
+    );
+    draw_rectangle(
+        rect.x,
+        rect.y,
+        rect.w,
+        rect.h,
+        Color::new(0.18, 0.05, 0.05, 0.92),
+    );
+    draw_rectangle_lines(
+        rect.x,
+        rect.y,
+        rect.w,
+        rect.h,
+        1.5,
+        Color::new(0.94, 0.42, 0.36, 1.0),
+    );
+    draw_ui_text(
+        &text,
+        rect.x + 8.0,
+        rect.y + 17.0,
+        14.0,
+        Color::new(0.96, 0.72, 0.60, 1.0),
+    );
+    draw_bar(
+        rect.x,
+        rect.y + rect.h + 2.0,
+        rect.w,
+        3.0,
+        remaining,
+        1.0,
+        Color::new(0.94, 0.42, 0.36, 1.0),
+    );
 }
 
 /// One pip per satisfied visit toward Lounge readiness. The meter the whole

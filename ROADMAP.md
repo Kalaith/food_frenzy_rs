@@ -94,23 +94,27 @@ must reach a processing inside 5 minutes and be able to say what meat is for.
 
 Review goal: *real decisions and kitchen tension in the moment-to-moment.*
 
-- [ ] **Dish freshness/spoilage** — cooked dishes decay on the pass; serving
-      fresh pays more (`engine/freshness.rs`, tuning in JSON). Kills
-      fire-and-forget cooking. (~300 LOC)
-- [ ] **Trait counterplay engine** — traits become telegraphed situations with
-      player answers and first-encounter hints (Fox steals unless the pass is
-      cleared; Monkey throws food below a satisfaction threshold the code
-      already checks but never explains; wanderers need reseating). Data-driven
-      behavior table (`engine/traits.rs` + JSON). (~700 LOC)
-- [ ] **Combo/chain juice** — visible combo meter, streak rewards, room-flow
-      bonus for a fully served floor (Diner Dash lesson). (~250 LOC)
-- [ ] **Café specialization** — pick a house style (e.g. Carnivore's Corner /
-      Sweet Parlor / Rustic Hearth) with real trade-offs: which clientele it
-      attracts, dish bonuses, spoilage rates (`state/specialization.rs` +
-      JSON). Makes runs diverge. (~450 LOC)
-- [ ] **Aspirational clientele board** — the 13-type ladder shown as a goal
-      board with silhouettes, unlock costs, and meat sources (front-load the
-      first unlocks in data). (~300 LOC)
+- [x] **Dish freshness/spoilage** — `engine/freshness.rs` + `PlatedDish`
+      aging (legacy-save compatible): fresh dishes pay a +25% bill bonus,
+      spoiled dishes are discarded off the pass; kitchen rows show a live
+      freshness countdown. Tuning in `game_balance.json`.
+- [x] **Trait counterplay engine** — telegraphed trait situations
+      (`simulation/traits.rs` rework + `assets/data/trait_behaviors.json`):
+      fox steal / monkey tantrum / wandering arm a visible warning with a
+      countdown and only fire if the player doesn't answer (serve the fox,
+      feed the monkey, land a course on the wanderer). One-time
+      first-encounter hints per trait, persisted in progression.
+- [x] **Combo/chain juice** — floor combo meter showing the live renown
+      multiplier, streak cash bonuses every 5th combo, and a full-house
+      renown bonus when every table's order completes at once.
+- [x] **Café specialization** — Carnivore's Corner / Sweet Parlor / Rustic
+      Hearth (`assets/data/specializations.json`), chosen in a modal after
+      the first processing; effects feed the same `get_effect` accumulator
+      as upgrades (validated by the same test); prestige resets the choice.
+- [x] **Aspirational clientele board** — full 4-tier ladder overlay
+      (`ui/clientele_board.rs`) with trait identities, meat yields, unlock
+      costs, and in-place Attract buttons; cow unlock front-loaded 6 → 4
+      pig-meat; `clientele_board` + `specialization` capture scenes added.
 
 ## Phase 3 — Content & session structure (review: Medium, ~2.3k LOC)
 

@@ -37,6 +37,7 @@ pub fn update_game_world(
     guests::update_patience(data, game_state, progression_state, timers, now_ms);
     guests::update_satisfaction_decay(data, game_state, progression_state, timers);
     traits::update_traits(data, game_state, timers, progression_state);
+    traits::update_trait_alerts(dt_ms, data, game_state, progression_state);
     update_lounge(dt_ms, game_state);
 }
 
@@ -76,7 +77,19 @@ fn update_customer_movement(
 
 fn update_cooking(dt_ms: f32, data: &GameData, game_state: &mut GameState) {
     let mut messages = Vec::new();
+    let mut spoiled = 0usize;
     for station in game_state.cooking_stations.values_mut() {
+        // Plated dishes age on the pass; spoiled ones are thrown out.
+        for dish in &mut station.dishes {
+            dish.age_ms += dt_ms;
+        }
+        let before = station.dishes.len();
+        station.dishes.retain(|dish| {
+            crate::engine::classify_dish_age(dish.age_ms, &data.balance)
+                != crate::engine::Freshness::Spoiled
+        });
+        spoiled += before - station.dishes.len();
+
         if !station.is_cooking {
             continue;
         }
@@ -86,7 +99,9 @@ fn update_cooking(dt_ms: f32, data: &GameData, game_state: &mut GameState) {
             station.remaining_ms = 0.0;
             if let Some(dish) = data.dish_type_by_color(&station.color) {
                 let cooked_name = crate::engine::random_dish_name(dish);
-                station.dishes.push(cooked_name.clone());
+                station
+                    .dishes
+                    .push(crate::state::PlatedDish::new(cooked_name.clone()));
                 messages.push(format!(
                     "{} ready: {cooked_name}",
                     dish_display_name(data, &station.color)
@@ -97,6 +112,16 @@ fn update_cooking(dt_ms: f32, data: &GameData, game_state: &mut GameState) {
         }
     }
 
+    if spoiled > 0 {
+        game_state.floaters.spawn(
+            format!("{spoiled} dish(es) spoiled on the pass"),
+            crate::state::FloaterKind::Alert,
+            crate::state::FloaterAnchor::Header,
+        );
+        game_state.add_message(format!(
+            "{spoiled} dish(es) sat too long and were thrown out."
+        ));
+    }
     for message in messages {
         game_state.add_message(message);
     }

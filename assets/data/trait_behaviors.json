@@ -1,0 +1,66 @@
+[
+  {
+    "trait": "can_steal_food",
+    "name": "Sticky Paws",
+    "telegraph": "eyeing the pass...",
+    "counter": "Serve their order or clear plated dishes before they pounce.",
+    "hint": "Foxes steal plated dishes off the pass. When one starts eyeing it, serve them fast or carry the dish away.",
+    "telegraphed": true
+  },
+  {
+    "trait": "throws_food",
+    "name": "Tantrum",
+    "telegraph": "getting cranky...",
+    "counter": "Raise their satisfaction before the tantrum lands.",
+    "hint": "Monkeys throw food when unhappy. Feed a cranky monkey quickly to settle them down.",
+    "telegraphed": true
+  },
+  {
+    "trait": "can_wander",
+    "name": "Restless",
+    "telegraph": "getting restless...",
+    "counter": "Serve any course to settle them at their table.",
+    "hint": "Restless guests change tables if ignored. A served course keeps them seated.",
+    "telegraphed": true
+  },
+  {
+    "trait": "fast_spoilage",
+    "name": "Wilting",
+    "telegraph": "",
+    "counter": "Serve them early - their mood decays twice as fast.",
+    "hint": "Fish guests wilt fast: satisfaction drains quickly and patience runs short. Prioritize them.",
+    "telegraphed": false
+  },
+  {
+    "trait": "low_appetite",
+    "name": "Light Eater",
+    "telegraph": "",
+    "counter": "They fill up fast - small orders, quick turnarounds.",
+    "hint": "Light eaters are satisfied with less. Quick, easy table turns.",
+    "telegraphed": false
+  },
+  {
+    "trait": "high_yield",
+    "name": "Prime Cut",
+    "telegraph": "",
+    "counter": "Worth the patience: they fatten into a premium yield.",
+    "hint": "Prime-cut guests hold more satisfaction and process into extra meat.",
+    "telegraphed": false
+  },
+  {
+    "trait": "multiplies_on_process",
+    "name": "Bountiful",
+    "telegraph": "",
+    "counter": "Processing them grants bonus meat.",
+    "hint": "Bountiful guests always leave a little extra behind in the Lounge.",
+    "telegraphed": false
+  },
+  {
+    "trait": "can_eat_waste",
+    "name": "Iron Stomach",
+    "telegraph": "",
+    "counter": "They happily eat anything - non-preferred dishes still land well.",
+    "hint": "Iron-stomach guests accept any dish nearly as well as a favorite.",
+    "telegraphed": false
+  }
+]
