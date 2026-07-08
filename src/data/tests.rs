@@ -353,6 +353,31 @@ fn freshness_and_streak_tuning_is_sane() {
 }
 
 #[test]
+fn course_pacing_tuning_is_sane() {
+    let data = parsed();
+    let balance = &data.balance;
+    assert!(balance.course_eating_ms > 0.0);
+    assert!(balance.course_wait_grace_ms > 0.0);
+    assert!(
+        balance.rushed_course_score_multiplier < 1.0,
+        "rushing a course must cost renown"
+    );
+    assert!(
+        balance.late_course_score_multiplier < 1.0,
+        "leaving a guest hungry must cost renown"
+    );
+    assert!(
+        balance.paced_course_score_multiplier >= 1.0,
+        "good pacing must never pay worse than neutral"
+    );
+    assert!(balance.hangry_satisfaction_decay_per_s >= 0.0);
+    assert!(
+        balance.course_eating_ms + balance.course_wait_grace_ms < balance.customer_patience_time,
+        "a full pacing cycle must fit well inside overall patience"
+    );
+}
+
+#[test]
 fn recipe_unlock_requirements_reference_real_customer_types() {
     let data = parsed();
     assert!(data.recipes.len() >= 12, "content expansion: 12+ recipes");

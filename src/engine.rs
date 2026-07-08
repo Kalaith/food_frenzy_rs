@@ -1,6 +1,9 @@
 //! Core gameplay helpers used by the Macroquad simulation loop.
 
 mod freshness;
+mod pacing;
+
+pub use pacing::{classify_course_pacing, is_kept_waiting, pacing_score_multiplier, CoursePacing};
 
 pub use freshness::{classify_dish_age, freshness_bill_multiplier, seconds_until_stale, Freshness};
 

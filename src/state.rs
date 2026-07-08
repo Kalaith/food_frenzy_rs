@@ -216,6 +216,12 @@ pub struct Customer {
     /// UI can flavor chatter without a `GuestState` lookup.
     #[serde(default)]
     pub personality: Option<String>,
+    /// Time left eating the course just served; the next course should wait.
+    #[serde(default)]
+    pub eating_ms: f32,
+    /// Time spent waiting for the next course after finishing the last one.
+    #[serde(default)]
+    pub waiting_ms: f32,
 }
 
 impl Customer {

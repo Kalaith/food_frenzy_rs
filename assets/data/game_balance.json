@@ -50,5 +50,11 @@
   "event_day_fraction": 0.35,
   "regular_visits_threshold": 3,
   "regular_yield_multiplier": 1.5,
-  "prestige_requirement_growth": 1.6
+  "prestige_requirement_growth": 1.6,
+  "course_eating_ms": 8000,
+  "course_wait_grace_ms": 14000,
+  "rushed_course_score_multiplier": 0.5,
+  "paced_course_score_multiplier": 1.2,
+  "late_course_score_multiplier": 0.75,
+  "hangry_satisfaction_decay_per_s": 1.2
 }

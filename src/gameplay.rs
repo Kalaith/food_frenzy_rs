@@ -1,9 +1,10 @@
 use crate::data::{EventEffect, GameData, PerkEffect, TutorialTrigger};
 use crate::engine::{
-    can_process_customer, classify_dish_age, cooking_time_ms, freshness_bill_multiplier,
-    is_regular, overfeed_multiplier, prestige_requirement, recipe_capacity_gain,
-    recipe_value_multiplier, serving_bill, serving_gain, serving_points, vip_meat_gain, vip_points,
-    visits_until_ready_for, Freshness,
+    can_process_customer, classify_course_pacing, classify_dish_age, cooking_time_ms,
+    freshness_bill_multiplier, is_regular, overfeed_multiplier, pacing_score_multiplier,
+    prestige_requirement, recipe_capacity_gain, recipe_value_multiplier, serving_bill,
+    serving_gain, serving_points, vip_meat_gain, vip_points, visits_until_ready_for, CoursePacing,
+    Freshness,
 };
 use crate::state::{
     FloaterAnchor, FloaterKind, GameState, GuestState, ProcessingCinematic, ProgressionState,
@@ -164,7 +165,10 @@ pub fn serve_customer(
 
     let is_overfed = game_state.customers[pos].overfed;
     let customer_traits = game_state.customers[pos].traits(data);
+    // Judge the meal rhythm before this serve mutates the order state.
+    let pacing = classify_course_pacing(&game_state.customers[pos], &data.balance);
     let mut score_gain = serving_points(data, satisfaction_gain, preferred) as f64;
+    score_gain *= pacing_score_multiplier(pacing, &data.balance);
     if let Some(EventEffect::ServeRenownMultiplier { multiplier }) =
         game_state.active_event_effect(data)
     {
@@ -182,6 +186,8 @@ pub fn serve_customer(
     let (course_label, courses_done, courses_total, running_tab) = {
         let customer = &mut game_state.customers[pos];
         customer.order[course_idx].served = true;
+        customer.eating_ms = data.balance.course_eating_ms.max(0.0);
+        customer.waiting_ms = 0.0;
         customer.bill = customer.bill.saturating_add(bill_gain);
         (
             customer.order[course_idx].label.clone(),
@@ -210,15 +216,47 @@ pub fn serve_customer(
         let customer = &game_state.customers[pos];
         (customer.floor_x, customer.floor_y)
     };
-    let gain_text = match (preferred, dish_freshness) {
-        (true, Freshness::Fresh) => format!("+{total_gain} renown  (loved it, fresh!)"),
-        (true, _) => format!("+{total_gain} renown  (loved it!)"),
-        (false, Freshness::Fresh) => format!("+{total_gain} renown  (fresh)"),
-        (false, _) => format!("+{total_gain} renown"),
+    let flavor_tag = match (preferred, dish_freshness) {
+        (true, Freshness::Fresh) => "  (loved it, fresh!)",
+        (true, _) => "  (loved it!)",
+        (false, Freshness::Fresh) => "  (fresh)",
+        (false, _) => "",
     };
-    game_state
-        .floaters
-        .spawn_at(gain_text, FloaterKind::Renown, floor_x, floor_y);
+    let pacing_tag = if pacing == CoursePacing::WellPaced {
+        "  well paced"
+    } else {
+        ""
+    };
+    game_state.floaters.spawn_at(
+        format!("+{total_gain} renown{flavor_tag}{pacing_tag}"),
+        FloaterKind::Renown,
+        floor_x,
+        floor_y,
+    );
+    match pacing {
+        CoursePacing::Rushed => {
+            let name = game_state.customers[pos].display_name.clone();
+            game_state.floaters.spawn_at(
+                "rushed - still eating!",
+                FloaterKind::Alert,
+                floor_x,
+                floor_y,
+            );
+            game_state.add_message(format!(
+                "{name} was still eating - the rushed course only earned partial renown."
+            ));
+        }
+        CoursePacing::KeptWaiting => {
+            let name = game_state.customers[pos].display_name.clone();
+            game_state
+                .floaters
+                .spawn_at("kept waiting...", FloaterKind::Alert, floor_x, floor_y);
+            game_state.add_message(format!(
+                "{name} sat hungry too long between courses - reduced renown."
+            ));
+        }
+        _ => {}
+    }
     game_state.queue_sfx(crate::state::SfxCue::Serve);
     game_state.tutorial_observe(TutorialTrigger::CourseServed, data);
     award_streak_bonuses(data, game_state, progression, floor_x, floor_y);

@@ -154,6 +154,28 @@ pub(super) fn update_departures(
     }
 }
 
+/// Advance each seated guest's meal rhythm: count down the eating window,
+/// then count up the wait for the next course. Guests kept waiting past the
+/// grace window bleed satisfaction until the course lands.
+pub(super) fn update_course_pacing(dt_ms: f32, data: &GameData, game_state: &mut GameState) {
+    let hangry_decay = data.balance.hangry_satisfaction_decay_per_s.max(0.0) * dt_ms / 1_000.0;
+    for customer in &mut game_state.customers {
+        if !customer.is_seated || customer.order_complete() || customer.courses_served() == 0 {
+            continue;
+        }
+        if customer.eating_ms > 0.0 {
+            customer.eating_ms = (customer.eating_ms - dt_ms).max(0.0);
+            customer.waiting_ms = 0.0;
+            continue;
+        }
+        customer.waiting_ms += dt_ms;
+        if hangry_decay > 0.0 && crate::engine::is_kept_waiting(customer, &data.balance) {
+            customer.satisfaction.decay_all(hangry_decay);
+            customer.refresh_totals();
+        }
+    }
+}
+
 pub(super) fn update_satisfaction_decay(
     data: &GameData,
     game_state: &mut GameState,
@@ -235,6 +257,8 @@ mod tests {
             times_fed,
             trait_alert: None,
             personality: None,
+            eating_ms: 0.0,
+            waiting_ms: 0.0,
         }
     }
 
@@ -303,6 +327,89 @@ mod tests {
             "order not finished, guest stays"
         );
         assert_eq!(progression.currency, 0);
+    }
+
+    #[test]
+    fn rushing_the_second_course_pays_less_than_pacing_it() {
+        let data = GameData::load();
+        let mut progression = ProgressionState::from_game_data(&data);
+        let mut guest_state = GuestState::new();
+
+        // Scenario A: entree then main served back to back (still eating).
+        let mut rushed = GameState::new(&data);
+        rushed.customers.push(seated_customer(
+            1,
+            0,
+            vec![course("blue", false), course("blue", false)],
+            0,
+        ));
+        for _ in 0..2 {
+            rushed
+                .station_mut("blue")
+                .unwrap()
+                .dishes
+                .push(crate::state::PlatedDish::new("Toast".to_string()));
+        }
+        assert!(crate::gameplay::serve_customer(
+            "blue",
+            1,
+            &data,
+            &mut rushed,
+            &mut progression,
+            &mut guest_state
+        ));
+        let after_first = rushed.score;
+        assert!(rushed.customers[0].eating_ms > 0.0, "eating window armed");
+        assert!(crate::gameplay::serve_customer(
+            "blue",
+            1,
+            &data,
+            &mut rushed,
+            &mut progression,
+            &mut guest_state
+        ));
+        let rushed_gain = rushed.score - after_first;
+
+        // Scenario B: identical, but the guest finished eating first.
+        let mut paced = GameState::new(&data);
+        paced.customers.push(seated_customer(
+            1,
+            0,
+            vec![course("blue", false), course("blue", false)],
+            0,
+        ));
+        for _ in 0..2 {
+            paced
+                .station_mut("blue")
+                .unwrap()
+                .dishes
+                .push(crate::state::PlatedDish::new("Toast".to_string()));
+        }
+        assert!(crate::gameplay::serve_customer(
+            "blue",
+            1,
+            &data,
+            &mut paced,
+            &mut progression,
+            &mut guest_state
+        ));
+        let after_first = paced.score;
+        paced.customers[0].eating_ms = 0.0;
+        paced.customers[0].waiting_ms = 1_000.0;
+        assert!(crate::gameplay::serve_customer(
+            "blue",
+            1,
+            &data,
+            &mut paced,
+            &mut progression,
+            &mut guest_state
+        ));
+        let paced_gain = paced.score - after_first;
+
+        assert!(
+            rushed_gain < paced_gain,
+            "rushed second course ({rushed_gain}) must pay less than a paced one ({paced_gain})"
+        );
     }
 
     #[test]

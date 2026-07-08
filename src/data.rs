@@ -310,6 +310,24 @@ pub struct GameBalance {
     /// Each prestige multiplies the next renown requirement by this.
     #[serde(default = "default_prestige_requirement_growth")]
     pub prestige_requirement_growth: f64,
+    /// How long a guest spends eating a served course before wanting the next.
+    #[serde(default = "default_course_eating_ms")]
+    pub course_eating_ms: f32,
+    /// After eating, how long a guest happily waits for the next course.
+    #[serde(default = "default_course_wait_grace_ms")]
+    pub course_wait_grace_ms: f32,
+    /// Renown multiplier for serving a course while they are still eating.
+    #[serde(default = "default_rushed_course_score_multiplier")]
+    pub rushed_course_score_multiplier: f64,
+    /// Renown multiplier for a well-paced course (after eating, within grace).
+    #[serde(default = "default_paced_course_score_multiplier")]
+    pub paced_course_score_multiplier: f64,
+    /// Renown multiplier for a course that arrives after the grace window.
+    #[serde(default = "default_late_course_score_multiplier")]
+    pub late_course_score_multiplier: f64,
+    /// Satisfaction lost per second while kept waiting past the grace window.
+    #[serde(default = "default_hangry_satisfaction_decay_per_s")]
+    pub hangry_satisfaction_decay_per_s: f32,
 }
 
 fn default_min_courses() -> u32 {
@@ -388,6 +406,30 @@ fn default_prestige_requirement_growth() -> f64 {
     1.6
 }
 
+fn default_course_eating_ms() -> f32 {
+    8_000.0
+}
+
+fn default_course_wait_grace_ms() -> f32 {
+    14_000.0
+}
+
+fn default_rushed_course_score_multiplier() -> f64 {
+    0.5
+}
+
+fn default_paced_course_score_multiplier() -> f64 {
+    1.2
+}
+
+fn default_late_course_score_multiplier() -> f64 {
+    0.75
+}
+
+fn default_hangry_satisfaction_decay_per_s() -> f32 {
+    1.2
+}
+
 impl Default for GameBalance {
     fn default() -> Self {
         Self {
@@ -427,6 +469,12 @@ impl Default for GameBalance {
             regular_visits_threshold: default_regular_visits_threshold(),
             regular_yield_multiplier: default_regular_yield_multiplier(),
             prestige_requirement_growth: default_prestige_requirement_growth(),
+            course_eating_ms: default_course_eating_ms(),
+            course_wait_grace_ms: default_course_wait_grace_ms(),
+            rushed_course_score_multiplier: default_rushed_course_score_multiplier(),
+            paced_course_score_multiplier: default_paced_course_score_multiplier(),
+            late_course_score_multiplier: default_late_course_score_multiplier(),
+            hangry_satisfaction_decay_per_s: default_hangry_satisfaction_decay_per_s(),
             dish_fresh_window_ms: default_dish_fresh_window_ms(),
             dish_spoil_ms: default_dish_spoil_ms(),
             fresh_bill_bonus_multiplier: default_fresh_bill_bonus_multiplier(),

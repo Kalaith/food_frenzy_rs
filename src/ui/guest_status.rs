@@ -47,7 +47,32 @@ pub(super) fn draw_guest_meters(
     );
 
     draw_fattening_pips(pos, customer, data);
+    draw_course_pacing_bar(pos, customer, data);
     draw_trait_alert(pos, customer, data);
+}
+
+/// Meal-rhythm strip above the satisfaction bar: fills sky-blue while the
+/// guest eats (don't serve yet), drains green while they'd welcome the next
+/// course, and pulses red once they've been kept waiting too long.
+fn draw_course_pacing_bar(pos: Vec2, customer: &Customer, data: &GameData) {
+    if customer.order_complete() || customer.courses_served() == 0 {
+        return;
+    }
+    let (fraction, color) = if customer.eating_ms > 0.0 {
+        (
+            (customer.eating_ms / data.balance.course_eating_ms.max(1.0)).clamp(0.0, 1.0),
+            SKYBLUE,
+        )
+    } else {
+        let grace = data.balance.course_wait_grace_ms.max(1.0);
+        if customer.waiting_ms <= grace {
+            (1.0 - (customer.waiting_ms / grace).clamp(0.0, 1.0), LIME)
+        } else {
+            let pulse = ((macroquad::time::get_time() * 5.0).sin() * 0.5 + 0.5) as f32;
+            (1.0, Color::new(0.94, 0.30 * pulse, 0.25 * pulse, 1.0))
+        }
+    };
+    draw_bar(pos.x - 52.0, pos.y - 78.0, 104.0, 3.0, fraction, 1.0, color);
 }
 
 /// Telegraphed trait warning: what they're about to do and how long the
@@ -187,7 +212,7 @@ pub(super) fn draw_guest_hover_panel(
         )
     };
     let patience = patience_remaining_ratio(customer, data, progression, now_ms);
-    let lines = [
+    let mut lines = vec![
         format!("{} - {}", customer.display_name, type_line),
         format!(
             "Satisfaction: {:.0}/{:.0}",
@@ -198,6 +223,21 @@ pub(super) fn draw_guest_hover_panel(
         fattening_line,
         format!("Tab so far: ${}", customer.bill.max(0)),
     ];
+    if !customer.order_complete() && customer.courses_served() > 0 {
+        lines.push(if customer.eating_ms > 0.0 {
+            format!(
+                "Eating ({:.0}s) - hold the next course",
+                customer.eating_ms / 1000.0
+            )
+        } else if customer.waiting_ms <= data.balance.course_wait_grace_ms {
+            format!(
+                "Ready for the next course ({:.0}s window)",
+                (data.balance.course_wait_grace_ms - customer.waiting_ms) / 1000.0
+            )
+        } else {
+            "Kept waiting - losing appetite!".to_string()
+        });
+    }
 
     let font = 14.0;
     let width = lines
