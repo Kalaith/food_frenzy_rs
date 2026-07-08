@@ -44,20 +44,19 @@ automation, more currencies, branching story, twitch difficulty) appears here.
 
 Hygiene before growth, per repo standards:
 
-- [ ] Migrate `src/ui/mod.rs` → `src/ui.rs` and `src/engine/mod.rs` →
+- [x] Migrate `src/ui/mod.rs` → `src/ui.rs` and `src/engine/mod.rs` →
       `src/engine.rs` (no new `mod.rs` files; don't leave both present).
-- [ ] Pre-split the two files nearest the limit before piling features onto
-      them: `src/simulation.rs` (670) → extract guest lifecycle vs. economy;
-      `src/ui/dining.rs` (530) → extract guest rendering from room layout.
-- [ ] Reconcile the name everywhere: **Feast Frenzy** (window title, README,
-      `publish.ps1` slug check, achievements text). The review flags the
-      Food/Feast split explicitly.
-- [ ] Add `#[test]`s that parse every JSON asset + cross-reference checks
-      (customer types ↔ meats ↔ recipes ↔ unlock costs), following
-      `dungeon_core`'s Phase-0 precedent — the meat-web is about to grow a lot
-      of data.
-- [ ] Decide the README stance consciously: keep the "wholesome café" cover
-      story as deliberate misdirection (recommended) and say so in a comment.
+- [x] Pre-split the two files nearest the limit before piling features onto
+      them: `simulation.rs` → orchestrator + `spawning`/`guests`/`traits`;
+      `ui/dining.rs` → tables/guests + `dining/room` (floor, fixtures, lounge).
+- [x] Reconcile the name everywhere — audited: player-facing copy is already
+      "Feast Frenzy" throughout; `food_frenzy`/`FOOD_FRENZY` remain as the
+      repo slug and env-var prefix by repo convention. No changes needed.
+- [x] Add `#[test]`s that parse every JSON asset + cross-reference checks
+      (customer types ↔ meats ↔ recipes ↔ unlock costs, upgrade effect keys
+      the engine actually reads) — `src/data.rs`.
+- [x] Decide the README stance consciously: kept the "wholesome café" cover
+      story as deliberate misdirection, recorded in a README comment.
 
 ## Phase 1 — Land the hook (review: Critical, ~2.5k LOC)
 
