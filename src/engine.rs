@@ -106,10 +106,26 @@ pub fn overfeed_multiplier(data: &GameData, traits: &CustomerSpecialTraits) -> f
     }
 }
 
+/// Visits a guest of this customer type needs before they are Lounge-ready.
+/// Tier 1 guests fatten fast so a new player reaches their first processing
+/// within minutes; higher tiers stay a longer investment.
+pub fn visits_until_ready_for(data: &GameData, customer_type_id: &str) -> u32 {
+    let ladder = &data.balance.visits_until_ready_by_tier;
+    if ladder.is_empty() {
+        return data.balance.visits_until_ready.max(1);
+    }
+    let tier = data
+        .customer_type_by_id(customer_type_id)
+        .map(|customer_type| customer_type.profile_tier)
+        .unwrap_or(1)
+        .max(1) as usize;
+    ladder[(tier - 1).min(ladder.len() - 1)].max(1)
+}
+
 /// A guest is ready for the Last Meal Lounge once they have been fully served
 /// on enough prior visits (fattened up over time), not from a single sitting.
 pub fn can_process_customer(customer: &Customer, data: &GameData) -> bool {
-    customer.times_fed >= data.balance.visits_until_ready
+    customer.times_fed >= visits_until_ready_for(data, &customer.customer_type)
 }
 
 /// Build a guest's order for this visit: 1-3 distinct courses, favouring the

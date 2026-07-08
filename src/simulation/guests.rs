@@ -1,9 +1,9 @@
 //! Seated-guest lifecycle: patience walkouts, satisfied departures (paying the
 //! tab and banking a fattening visit), and satisfaction decay over time.
 
-use crate::data::GameData;
-use crate::engine::satisfied_tip;
-use crate::state::{GameState, GuestState, ProgressionState, Timers};
+use crate::data::{GameData, TutorialTrigger};
+use crate::engine::{satisfied_tip, visits_until_ready_for};
+use crate::state::{FloaterKind, GameState, GuestState, ProgressionState, Timers};
 
 pub(super) fn update_patience(
     data: &GameData,
@@ -32,8 +32,12 @@ pub(super) fn update_patience(
             let name = customer.display_name.clone();
             let served = customer.courses_served();
             let ordered = customer.order.len();
+            let (floor_x, floor_y) = (customer.floor_x, customer.floor_y);
             progression.add_currency(paid);
             progression.record_customer_lost();
+            game_state
+                .floaters
+                .spawn_at("walked out!", FloaterKind::Alert, floor_x, floor_y);
             if paid > 0 {
                 game_state.add_message(format!(
                     "{name} left unhappy ({served}/{ordered} courses), only paid ${paid}."
@@ -82,6 +86,8 @@ pub(super) fn update_departures(
     }
 
     let mut messages = Vec::new();
+    let mut floaters = Vec::new();
+    let mut any_ready = false;
     for id in &departed {
         let Some(customer) = game_state.customers.iter().find(|item| item.id == *id) else {
             continue;
@@ -92,11 +98,14 @@ pub(super) fn update_departures(
         progression.add_currency(paid);
         guest_state.record_guest_satisfied_visit(&customer.guest_id);
         let fed = customer.times_fed.saturating_add(1);
-        let ready_hint = if fed >= data.balance.visits_until_ready {
+        let ready = fed >= visits_until_ready_for(data, &customer.customer_type);
+        any_ready |= ready;
+        let ready_hint = if ready {
             " Plump enough for the Lounge next visit."
         } else {
             ""
         };
+        floaters.push((format!("+${paid}"), customer.floor_x, customer.floor_y));
         messages.push(format!(
             "{} left glowing and settled ${paid} (${bill} +${tip} tip).{ready_hint}",
             customer.display_name
@@ -107,8 +116,15 @@ pub(super) fn update_departures(
         .customers
         .retain(|customer| !departed.contains(&customer.id));
     game_state.combo = game_state.combo.saturating_add(1);
+    for (text, x, y) in floaters {
+        game_state.floaters.spawn_at(text, FloaterKind::Cash, x, y);
+    }
     for message in messages {
         game_state.add_message(message);
+    }
+    game_state.tutorial_observe(TutorialTrigger::GuestDepartedFed, data);
+    if any_ready {
+        game_state.tutorial_observe(TutorialTrigger::GuestReady, data);
     }
 }
 
@@ -264,19 +280,23 @@ mod tests {
     #[test]
     fn readiness_is_reached_after_enough_fed_visits() {
         let data = GameData::load();
-        let below = seated_customer(
-            1,
-            0,
-            vec![course("blue", false)],
-            data.balance.visits_until_ready - 1,
-        );
-        let ready = seated_customer(
-            2,
-            0,
-            vec![course("blue", false)],
-            data.balance.visits_until_ready,
-        );
+        // The helper builds tier-1 pigs, so the tier ladder's first entry applies.
+        let needed = crate::engine::visits_until_ready_for(&data, "pig");
+        let below = seated_customer(1, 0, vec![course("blue", false)], needed - 1);
+        let ready = seated_customer(2, 0, vec![course("blue", false)], needed);
         assert!(!crate::engine::can_process_customer(&below, &data));
         assert!(crate::engine::can_process_customer(&ready, &data));
+    }
+
+    #[test]
+    fn tier_one_guests_are_ready_sooner_than_the_flat_fallback() {
+        let data = GameData::load();
+        let tier_one = crate::engine::visits_until_ready_for(&data, "pig");
+        assert!(
+            tier_one < data.balance.visits_until_ready,
+            "early pacing retune: tier 1 must be faster than the old flat gate"
+        );
+        let unknown = crate::engine::visits_until_ready_for(&data, "not-a-type");
+        assert_eq!(unknown, tier_one, "unknown types fall back to tier 1");
     }
 }

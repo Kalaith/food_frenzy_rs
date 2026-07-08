@@ -116,7 +116,7 @@ fn try_spawn_customer(
         times_fed,
     });
     guest_state.record_guest_visit(&guest_record.id);
-    if times_fed >= data.balance.visits_until_ready {
+    if times_fed >= crate::engine::visits_until_ready_for(data, &customer_type.id) {
         game_state.add_message(format!(
             "{} waddles back in, plump and ready. The Lounge awaits.",
             guest_record.name

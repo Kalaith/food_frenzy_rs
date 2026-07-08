@@ -56,6 +56,7 @@ pub fn start_station_with_player(
 
 pub fn select_station_with_player(
     station_color: String,
+    data: &GameData,
     selected_station: &mut Option<String>,
     game_state: &mut GameState,
 ) {
@@ -76,6 +77,7 @@ pub fn select_station_with_player(
             false,
             game_state,
         );
+        game_state.tutorial_observe(crate::data::TutorialTrigger::DishCarried, data);
     }
 }
 
@@ -191,7 +193,12 @@ pub fn interact_with_nearest_station(
         .get(station_color)
         .is_some_and(|station| !station.dishes.is_empty());
     if has_ready_dish {
-        select_station_with_player(station_color.to_string(), selected_station, game_state);
+        select_station_with_player(
+            station_color.to_string(),
+            data,
+            selected_station,
+            game_state,
+        );
     } else {
         start_station_with_player(
             station_color,

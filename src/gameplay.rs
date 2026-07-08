@@ -1,9 +1,13 @@
-use crate::data::GameData;
+use crate::data::{GameData, TutorialTrigger};
 use crate::engine::{
     can_process_customer, cooking_time_ms, overfeed_multiplier, recipe_capacity_gain,
     recipe_value_multiplier, serving_bill, serving_gain, serving_points, vip_meat_gain, vip_points,
+    visits_until_ready_for,
 };
-use crate::state::{GameState, GuestState, ProgressionState, INFINITE_INGREDIENTS};
+use crate::state::{
+    FloaterAnchor, FloaterKind, GameState, GuestState, ProcessingCinematic, ProgressionState,
+    INFINITE_INGREDIENTS,
+};
 
 pub fn dish_display_name(data: &GameData, color: &str) -> String {
     data.dish_type_by_color(color)
@@ -22,6 +26,11 @@ pub fn try_prestige(
             "Prestige complete! +{} currency gained.",
             progression.prestige_level
         ));
+        game_state.floaters.spawn(
+            format!("Prestige {}!", progression.prestige_level),
+            FloaterKind::Renown,
+            FloaterAnchor::Header,
+        );
     } else {
         game_state.add_message("Prestige unavailable yet.".to_string());
     }
@@ -41,6 +50,7 @@ pub fn start_cooking(
     if station.can_cook(cooking_slot_limit) {
         station.is_cooking = true;
         station.remaining_ms = cooking_time_ms(data, progression, station_color);
+        game_state.tutorial_observe(TutorialTrigger::CookingStarted, data);
         true
     } else {
         false
@@ -134,6 +144,19 @@ pub fn serve_customer(
         "{} served {course_label} ({dish_name}) +{total_gain} pts, tab ${running_tab} [{courses_done}/{courses_total}]",
         game_state.customers[pos].display_name
     ));
+    let (floor_x, floor_y) = {
+        let customer = &game_state.customers[pos];
+        (customer.floor_x, customer.floor_y)
+    };
+    let gain_text = if preferred {
+        format!("+{total_gain} renown  (loved it!)")
+    } else {
+        format!("+{total_gain} renown")
+    };
+    game_state
+        .floaters
+        .spawn_at(gain_text, FloaterKind::Renown, floor_x, floor_y);
+    game_state.tutorial_observe(TutorialTrigger::CourseServed, data);
 
     true
 }
@@ -166,14 +189,13 @@ pub fn invite_customer_to_vip(
     }
     if !can_process_customer(&game_state.customers[index], data) {
         let customer = &game_state.customers[index];
+        let needed = visits_until_ready_for(data, &customer.customer_type);
         game_state.add_message(format!(
             "{} isn't plump enough yet — {} more visits ({}/{}).",
             customer.display_name,
-            data.balance
-                .visits_until_ready
-                .saturating_sub(customer.times_fed),
+            needed.saturating_sub(customer.times_fed),
             customer.times_fed,
-            data.balance.visits_until_ready
+            needed
         ));
         return false;
     }
@@ -202,7 +224,8 @@ pub fn invite_customer_to_vip(
     let meal_points = ((vip_points(&customer, data) as f64) + (meat_gain as f64 * 10.0))
         * data.balance.base_score_multiplier;
     let awarded = add_score(game_state, progression, meal_points, true);
-    progression.add_currency((awarded / 5).max(0));
+    let cash_gain = (awarded / 5).max(0);
+    progression.add_currency(cash_gain);
     progression.record_processed_customer(&customer.customer_type, chain_value);
     game_state.special_table_busy = true;
     game_state.special_table_timer = data.balance.special_table_process_time;
@@ -210,6 +233,17 @@ pub fn invite_customer_to_vip(
         "{} steps into the Last Meal Lounge. Larder +{} {} (+{} renown).",
         customer.display_name, meat_gain, meat_type, awarded
     ));
+    // Rewards are already banked above; the cinematic only stages the moment.
+    game_state.processing_cinematic = Some(ProcessingCinematic::new(
+        customer.display_name.clone(),
+        customer.customer_type.clone(),
+        meat_gain,
+        meat_type,
+        awarded,
+        cash_gain,
+        (customer.floor_x, customer.floor_y),
+    ));
+    game_state.tutorial_observe(TutorialTrigger::GuestProcessed, data);
 
     true
 }
@@ -299,10 +333,16 @@ pub fn craft_recipe(
         * recipe_value_multiplier(progression)
         * data.balance.base_score_multiplier;
     let awarded = add_score(game_state, progression, points, false);
-    progression.add_currency(awarded / 4);
+    let cash_gain = awarded / 4;
+    progression.add_currency(cash_gain);
     let bonus_capacity = recipe_capacity_gain(progression, recipe.capacity_bonus);
     progression.record_crafted_recipe(&recipe.id, bonus_capacity);
     game_state.add_message(format!("Crafted {} for {} points.", recipe.name, awarded));
+    game_state.floaters.spawn(
+        format!("{}: +{} renown, +${}", recipe.name, awarded, cash_gain),
+        FloaterKind::Renown,
+        FloaterAnchor::Header,
+    );
 }
 
 fn missing_ingredients(

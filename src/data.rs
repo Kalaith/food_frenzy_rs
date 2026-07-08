@@ -8,6 +8,7 @@ const UPGRADES_JSON: &str = include_str!("../assets/data/upgrades.json");
 const RECIPES_JSON: &str = include_str!("../assets/data/recipes.json");
 const ACHIEVEMENTS_JSON: &str = include_str!("../assets/data/achievements.json");
 const GAME_BALANCE_JSON: &str = include_str!("../assets/data/game_balance.json");
+const TUTORIAL_JSON: &str = include_str!("../assets/data/tutorial.json");
 
 pub const STATION_COLORS: [&str; 4] = ["blue", "green", "yellow", "red"];
 
@@ -101,6 +102,29 @@ pub struct Achievement {
     pub reward: i64,
 }
 
+/// What has to happen in play for a tutorial step to complete and advance.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TutorialTrigger {
+    GuestSeated,
+    CookingStarted,
+    DishCarried,
+    CourseServed,
+    GuestDepartedFed,
+    GuestReady,
+    GuestProcessed,
+    /// Completed by the player clicking "Got it" rather than a game event.
+    Acknowledged,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TutorialStep {
+    pub id: String,
+    pub title: String,
+    pub body: String,
+    pub trigger: TutorialTrigger,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameBalance {
     pub customer_spawn_interval: f32,
@@ -140,6 +164,12 @@ pub struct GameBalance {
     pub max_courses: u32,
     #[serde(default = "default_visits_until_ready")]
     pub visits_until_ready: u32,
+    /// Visits needed before a guest is Lounge-ready, indexed by profile tier
+    /// (tier 1 uses index 0). Cheap early tiers land the hook fast; later
+    /// tiers stay a longer investment. Falls back to `visits_until_ready`
+    /// when empty.
+    #[serde(default)]
+    pub visits_until_ready_by_tier: Vec<u32>,
 }
 
 fn default_min_courses() -> u32 {
@@ -203,6 +233,7 @@ impl Default for GameBalance {
             min_courses: 1,
             max_courses: 3,
             visits_until_ready: 5,
+            visits_until_ready_by_tier: vec![2, 3, 4, 5],
         }
     }
 }
@@ -214,6 +245,7 @@ pub struct GameData {
     pub upgrades: Vec<Upgrade>,
     pub recipes: Vec<Recipe>,
     pub achievements: Vec<Achievement>,
+    pub tutorial_steps: Vec<TutorialStep>,
     pub balance: GameBalance,
 }
 
@@ -225,6 +257,7 @@ impl GameData {
             upgrades: parse_or_fallback(UPGRADES_JSON, "[]"),
             recipes: parse_or_fallback(RECIPES_JSON, "[]"),
             achievements: parse_or_fallback(ACHIEVEMENTS_JSON, "[]"),
+            tutorial_steps: parse_or_fallback(TUTORIAL_JSON, "[]"),
             balance: parse_or_fallback(GAME_BALANCE_JSON, "{}"),
         }
     }
@@ -278,6 +311,7 @@ mod tests {
             recipes: serde_json::from_str(RECIPES_JSON).expect("recipes.json must parse"),
             achievements: serde_json::from_str(ACHIEVEMENTS_JSON)
                 .expect("achievements.json must parse"),
+            tutorial_steps: serde_json::from_str(TUTORIAL_JSON).expect("tutorial.json must parse"),
             balance: serde_json::from_str(GAME_BALANCE_JSON).expect("game_balance.json must parse"),
         }
     }
@@ -503,5 +537,48 @@ mod tests {
         assert!(balance.max_courses as usize <= STATION_COLORS.len());
         assert!(balance.prestige_score_requirement > 0);
         assert!(balance.special_table_process_time > 0.0);
+        assert!(
+            !balance.visits_until_ready_by_tier.is_empty(),
+            "tier readiness ladder drives early pacing"
+        );
+        for window in balance.visits_until_ready_by_tier.windows(2) {
+            assert!(
+                window[0] <= window[1],
+                "readiness ladder must not get cheaper at higher tiers"
+            );
+        }
+        assert!(balance
+            .visits_until_ready_by_tier
+            .iter()
+            .all(|visits| *visits >= 1));
+    }
+
+    #[test]
+    fn tutorial_steps_are_present_and_end_with_acknowledged() {
+        let data = parsed();
+        assert!(
+            data.tutorial_steps.len() >= 5,
+            "tutorial must cover the full cook->serve->fatten->process loop"
+        );
+        assert_unique_ids(
+            "tutorial step",
+            &data
+                .tutorial_steps
+                .iter()
+                .map(|step| step.id.as_str())
+                .collect::<Vec<_>>(),
+        );
+        assert_eq!(
+            data.tutorial_steps.last().map(|step| step.trigger),
+            Some(TutorialTrigger::Acknowledged),
+            "final step must wait for the player to acknowledge it"
+        );
+        for step in &data.tutorial_steps {
+            assert!(
+                !step.title.is_empty() && !step.body.is_empty(),
+                "{}",
+                step.id
+            );
+        }
     }
 }

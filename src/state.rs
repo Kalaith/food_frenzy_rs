@@ -1,8 +1,15 @@
-use crate::data::{Achievement, CustomerSpecialTraits, GameData, Recipe, Upgrade};
+use crate::data::{Achievement, CustomerSpecialTraits, GameData, Recipe, TutorialTrigger, Upgrade};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
+mod cinematic;
+mod floaters;
 mod progression;
+mod tutorial;
+
+pub use cinematic::{CinematicPhase, ProcessingCinematic, REVEAL_MS};
+pub use floaters::{FloaterAnchor, FloaterKind, Floaters};
+pub use tutorial::TutorialProgress;
 
 pub const INFINITE_INGREDIENTS: i64 = -1;
 
@@ -316,6 +323,17 @@ pub struct GameState {
     pub next_customer_id: u32,
     #[serde(default)]
     pub player: PlayerActor,
+    /// Onboarding progress; persisted so the tutorial resumes across saves.
+    #[serde(default)]
+    pub tutorial: TutorialProgress,
+    /// Presentation-only: floating gain numbers. Never saved.
+    #[serde(skip)]
+    pub floaters: Floaters,
+    /// Presentation-only: the Last Meal Lounge sequence in progress, if any.
+    /// Rewards are already applied when this is set, so dropping it on
+    /// save/load loses nothing but the show.
+    #[serde(skip)]
+    pub processing_cinematic: Option<ProcessingCinematic>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -368,7 +386,16 @@ impl GameState {
             messages: vec!["Service started.".to_string()],
             next_customer_id: 1,
             player: PlayerActor::default(),
+            tutorial: TutorialProgress::default(),
+            floaters: Floaters::default(),
+            processing_cinematic: None,
         }
+    }
+
+    /// Report a tutorial-worthy gameplay event; advances the tutorial when it
+    /// matches the current step.
+    pub fn tutorial_observe(&mut self, trigger: TutorialTrigger, data: &GameData) {
+        self.tutorial.observe(trigger, &data.tutorial_steps);
     }
 
     pub fn next_customer_id(&mut self) -> u32 {

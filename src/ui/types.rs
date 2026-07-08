@@ -12,6 +12,8 @@ pub struct UiActions {
     pub attract_buttons: HashMap<String, Rect>,
     pub prestige_button: Option<Rect>,
     pub clear_selection: Option<Rect>,
+    pub tutorial_next: Option<Rect>,
+    pub tutorial_skip: Option<Rect>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

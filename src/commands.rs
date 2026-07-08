@@ -22,6 +22,8 @@ pub enum UiCommand {
     AttractCustomer(String),
     Prestige,
     ClearSelection,
+    TutorialNext,
+    TutorialSkip,
 }
 
 pub fn read_title_action(ui_hits: &TitleActions) -> Option<TitleAction> {
@@ -46,6 +48,18 @@ pub fn read_input_action(ui_hits: UiActions) -> Option<UiCommand> {
     }
 
     let click = vec2(mouse_position().0, mouse_position().1);
+    if ui_hits
+        .tutorial_next
+        .is_some_and(|rect| rect.contains(click))
+    {
+        return Some(UiCommand::TutorialNext);
+    }
+    if ui_hits
+        .tutorial_skip
+        .is_some_and(|rect| rect.contains(click))
+    {
+        return Some(UiCommand::TutorialSkip);
+    }
     if ui_hits
         .clear_selection
         .is_some_and(|rect| rect.contains(click))
@@ -88,7 +102,7 @@ pub fn apply_ui_command(
             );
         }
         UiCommand::SelectDish(station_color) => {
-            select_station_with_player(station_color, selected_station, game_state);
+            select_station_with_player(station_color, data, selected_station, game_state);
         }
         UiCommand::Serve(customer_id) => {
             serve_selected_customer(
@@ -111,8 +125,19 @@ pub fn apply_ui_command(
             );
         }
         UiCommand::BuyUpgrade(upgrade_id) => {
+            let cost = progression_state
+                .upgrades
+                .iter()
+                .find(|upgrade| upgrade.id == upgrade_id)
+                .map(|upgrade| upgrade.cost)
+                .unwrap_or(0);
             if progression_state.buy_upgrade(&upgrade_id) {
                 game_state.add_message(format!("Upgrade purchased: {upgrade_id}"));
+                game_state.floaters.spawn(
+                    format!("-${cost} upgrade"),
+                    crate::state::FloaterKind::Cash,
+                    crate::state::FloaterAnchor::Header,
+                );
             } else {
                 game_state.add_message(format!("Cannot purchase {upgrade_id} now."));
             }
@@ -129,6 +154,13 @@ pub fn apply_ui_command(
         UiCommand::ClearSelection => {
             *selected_station = None;
             clear_player_carry(game_state);
+        }
+        UiCommand::TutorialNext => {
+            game_state.tutorial.advance(&data.tutorial_steps);
+        }
+        UiCommand::TutorialSkip => {
+            game_state.tutorial.skip();
+            game_state.add_message("Tutorial skipped. The kitchen is yours.".to_string());
         }
     }
 }

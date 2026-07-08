@@ -3,11 +3,15 @@
 mod actors;
 mod common;
 mod dining;
+mod floaters;
 mod growth;
+mod guest_status;
 mod kitchen;
 mod layout;
+mod lounge;
 mod menu;
 mod sprites;
+mod tutorial_panel;
 mod types;
 
 pub use layout::draw_and_collect_hitboxes;

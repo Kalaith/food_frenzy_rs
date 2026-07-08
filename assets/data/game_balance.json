@@ -1,6 +1,10 @@
 {
-  "customer_spawn_interval": 15000,
-  "initial_spawn_delays": [4000, 11000],
+  "customer_spawn_interval": 10000,
+  "initial_spawn_delays": [
+    2500,
+    7500,
+    12500
+  ],
   "base_satisfaction_gain": 8,
   "preferred_satisfaction_gain": 12,
   "max_satisfaction_per_type": 40,
@@ -10,7 +14,7 @@
   "base_score_multiplier": 1,
   "preferred_dish_score_multiplier": 2,
   "vip_points_per_deliciousness": 140,
-  "max_customers": 2,
+  "max_customers": 3,
   "overfeed_multiplier": 1.5,
   "customer_patience_time": 135000,
   "trait_tick_interval": 8000,
@@ -28,5 +32,11 @@
   "content_dwell_ms": 2000,
   "min_courses": 1,
   "max_courses": 3,
-  "visits_until_ready": 5
+  "visits_until_ready": 5,
+  "visits_until_ready_by_tier": [
+    2,
+    3,
+    4,
+    5
+  ]
 }

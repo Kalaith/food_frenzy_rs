@@ -1,0 +1,134 @@
+//! The Last Meal Lounge processing sequence: a short, fixed timeline that
+//! turns the game's signature moment into a staged beat instead of a ticker
+//! line. Pure timing/state — drawing lives in `ui::lounge`. Rewards are
+//! applied when the invite succeeds; this struct only carries what to show.
+
+use serde::{Deserialize, Serialize};
+
+pub const ESCORT_MS: f32 = 1_400.0;
+pub const CURTAIN_MS: f32 = 900.0;
+pub const QUIET_MS: f32 = 800.0;
+pub const REVEAL_MS: f32 = 2_600.0;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CinematicPhase {
+    /// The guest is led from their table toward the lounge; the room dims.
+    Escort,
+    /// The lounge curtain draws shut.
+    Curtain,
+    /// A held beat behind the curtain. The wrong-note moment.
+    Quiet,
+    /// The payoff: meat gained, renown, the guest's parting.
+    Reveal,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProcessingCinematic {
+    pub guest_name: String,
+    pub customer_type: String,
+    pub meat_gain: i64,
+    pub meat_type: String,
+    pub renown_gain: i64,
+    pub cash_gain: i64,
+    /// Where the guest was seated, in dining-floor world coordinates.
+    pub from_floor: (f32, f32),
+    pub elapsed_ms: f32,
+}
+
+impl ProcessingCinematic {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        guest_name: String,
+        customer_type: String,
+        meat_gain: i64,
+        meat_type: String,
+        renown_gain: i64,
+        cash_gain: i64,
+        from_floor: (f32, f32),
+    ) -> Self {
+        Self {
+            guest_name,
+            customer_type,
+            meat_gain,
+            meat_type,
+            renown_gain,
+            cash_gain,
+            from_floor,
+            elapsed_ms: 0.0,
+        }
+    }
+
+    pub fn total_ms() -> f32 {
+        ESCORT_MS + CURTAIN_MS + QUIET_MS + REVEAL_MS
+    }
+
+    pub fn advance(&mut self, dt_ms: f32) {
+        self.elapsed_ms += dt_ms.max(0.0);
+    }
+
+    /// Current phase and 0..1 progress within it.
+    pub fn phase(&self) -> (CinematicPhase, f32) {
+        let mut remaining = self.elapsed_ms;
+        for (phase, duration) in [
+            (CinematicPhase::Escort, ESCORT_MS),
+            (CinematicPhase::Curtain, CURTAIN_MS),
+            (CinematicPhase::Quiet, QUIET_MS),
+            (CinematicPhase::Reveal, REVEAL_MS),
+        ] {
+            if remaining < duration {
+                return (phase, (remaining / duration).clamp(0.0, 1.0));
+            }
+            remaining -= duration;
+        }
+        (CinematicPhase::Reveal, 1.0)
+    }
+
+    pub fn finished(&self) -> bool {
+        self.elapsed_ms >= Self::total_ms()
+    }
+
+    /// The payoff is on screen, so a click may dismiss the sequence early.
+    pub fn can_dismiss(&self) -> bool {
+        matches!(self.phase().0, CinematicPhase::Reveal)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn cinematic() -> ProcessingCinematic {
+        ProcessingCinematic::new(
+            "Marnie".to_string(),
+            "pig".to_string(),
+            4,
+            "pig-meat".to_string(),
+            320,
+            64,
+            (400.0, 300.0),
+        )
+    }
+
+    #[test]
+    fn phases_advance_in_order() {
+        let mut sequence = cinematic();
+        assert_eq!(sequence.phase().0, CinematicPhase::Escort);
+        sequence.advance(ESCORT_MS + 1.0);
+        assert_eq!(sequence.phase().0, CinematicPhase::Curtain);
+        sequence.advance(CURTAIN_MS);
+        assert_eq!(sequence.phase().0, CinematicPhase::Quiet);
+        sequence.advance(QUIET_MS);
+        assert_eq!(sequence.phase().0, CinematicPhase::Reveal);
+        assert!(sequence.can_dismiss());
+        assert!(!sequence.finished());
+        sequence.advance(REVEAL_MS);
+        assert!(sequence.finished());
+    }
+
+    #[test]
+    fn dismiss_is_blocked_before_the_reveal() {
+        let mut sequence = cinematic();
+        sequence.advance(ESCORT_MS + CURTAIN_MS * 0.5);
+        assert!(!sequence.can_dismiss());
+    }
+}

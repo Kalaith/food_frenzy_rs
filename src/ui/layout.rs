@@ -1,7 +1,10 @@
-use super::common::{draw_resource_tile, BACKGROUND, GOLD, LINE};
+use super::common::{draw_resource_tile, draw_tooltip, BACKGROUND, GOLD, LINE};
 use super::dining::draw_dining_room;
+use super::floaters::draw_floaters;
 use super::growth::{draw_event_feed, draw_growth_panel};
 use super::kitchen::draw_kitchen;
+use super::lounge::draw_processing_overlay;
+use super::tutorial_panel::draw_tutorial_panel;
 use super::types::UiActions;
 use crate::data::GameData;
 use crate::engine::max_customer_count;
@@ -34,16 +37,34 @@ fn draw_top_header(data: &GameData, game: &GameState, progression: &ProgressionS
     } else {
         "ready".to_string()
     };
+    let meat_total: i64 = game
+        .ingredients
+        .iter()
+        .filter(|(name, amount)| {
+            name.as_str() != data.balance.regular_ingredient_name && **amount > 0
+        })
+        .map(|(_, amount)| *amount)
+        .sum();
+    // Each tile carries a hover explanation: the three currencies confused
+    // the original playtest, so every number says what it is for.
     let tiles = [
         (
             "Cash",
-            progression.currency.to_string(),
+            format!("${}", progression.currency),
             Color::new(0.52, 0.84, 0.46, 1.0),
+            "Cash: paid on guest tabs. Spend on upgrades.",
         ),
         (
             "Renown",
             game.score.to_string(),
             Color::new(0.44, 0.66, 0.96, 1.0),
+            "Renown: reputation from service. Fills the Prestige bar below.",
+        ),
+        (
+            "Larder",
+            meat_total.to_string(),
+            Color::new(0.93, 0.52, 0.60, 1.0),
+            "Meat from the Lounge. Attracts richer clientele; crafts recipes.",
         ),
         (
             "Guests",
@@ -53,34 +74,56 @@ fn draw_top_header(data: &GameData, game: &GameState, progression: &ProgressionS
                 max_customer_count(data, progression)
             ),
             Color::new(0.90, 0.70, 0.40, 1.0),
+            "Seats filled / tables open. Upgrades add tables.",
         ),
         (
-            "Clientele",
-            format!(
-                "{}/{}",
-                progression.unlocked_customer_count(),
-                data.customer_types.len()
-            ),
-            Color::new(0.58, 0.76, 0.54, 1.0),
+            "Lounge",
+            vip,
+            Color::new(0.74, 0.52, 0.92, 1.0),
+            "The Last Meal Lounge. Invite plump guests for their final course.",
         ),
-        ("Lounge", vip, Color::new(0.74, 0.52, 0.92, 1.0)),
         (
             "Prestige",
             progression.prestige_level.to_string(),
             Color::new(0.82, 0.45, 0.88, 1.0),
+            "Reset for a permanent renown bonus once the bar fills.",
         ),
     ];
     let gap = 8.0;
     let tile_w = (bar.w - 24.0 - gap * (tiles.len() as f32 - 1.0)) / tiles.len() as f32;
+    let mouse = vec2(mouse_position().0, mouse_position().1);
+    let mut hovered_tip: Option<(f32, &str)> = None;
     let mut x = bar.x + 12.0;
-    for (label, value, accent) in tiles {
-        draw_resource_tile(
-            Rect::new(x, bar.y + 8.0, tile_w, 54.0),
-            label,
-            &value,
-            Some(accent),
-        );
+    for (index, (label, value, accent, tip)) in tiles.iter().enumerate() {
+        let rect = Rect::new(x, bar.y + 8.0, tile_w, 54.0);
+        draw_resource_tile(rect, label, value, Some(*accent));
+        if index == 1 {
+            // Renown tile doubles as the visible prestige progress bar.
+            let progress = (progression.total_score as f32
+                / data.balance.prestige_score_requirement.max(1) as f32)
+                .clamp(0.0, 1.0);
+            draw_rectangle(
+                rect.x + 38.0,
+                rect.y + rect.h - 9.0,
+                rect.w - 50.0,
+                4.0,
+                Color::new(0.16, 0.13, 0.15, 1.0),
+            );
+            draw_rectangle(
+                rect.x + 38.0,
+                rect.y + rect.h - 9.0,
+                (rect.w - 50.0) * progress,
+                4.0,
+                Color::new(0.74, 0.35, 0.88, 1.0),
+            );
+        }
+        if rect.contains(mouse) {
+            hovered_tip = Some((rect.x + rect.w * 0.5, tip));
+        }
         x += tile_w + gap;
+    }
+    if let Some((center_x, tip)) = hovered_tip {
+        draw_tooltip(tip, center_x, bar.y + bar.h + 6.0);
     }
 }
 
@@ -142,6 +185,10 @@ pub fn draw_and_collect_hitboxes(
     );
     draw_growth_panel(right, game, progression, data, &mut ui);
     draw_event_feed(feed, game);
+    draw_floaters(floor, game);
+    draw_tutorial_panel(floor, game, data, &mut ui);
+    // Drawn last: the processing sequence owns the whole screen while active.
+    draw_processing_overlay(game);
 
     ui
 }

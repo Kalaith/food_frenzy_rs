@@ -63,26 +63,29 @@ Hygiene before growth, per repo standards:
 Review goal: *a first-time player reaches a dramatized first processing in
 ~5 minutes and understands the loop.*
 
-- [ ] **Pacing retune** (data-only): `visits_until_ready` scales by tier
-      (2 for tier 1, up to 5 at tier 4), faster spawns, 3 starting tables.
-      All in `assets/data/*.json`, no hardcoding.
-- [ ] **Onboarding system** — scripted first-guest tutorial as a data-driven
-      step machine (`state/tutorial.rs` + `assets/data/tutorial.json`):
-      cook → serve → fatten → invite → first processing. Skippable, resumable.
-      (~600 LOC)
-- [ ] **Guest state HUD** — per-guest fattening / satisfaction / patience
-      meters and a "plump and ready" callout (`ui/guest_status.rs`). You can't
-      play around state you can't see. (~300 LOC)
-- [ ] **Last Meal Lounge dramatization** — a dedicated processing sequence:
-      transition, animation timeline, meat-payoff reveal, wrong-note audio
-      sting (`ui/lounge.rs` + `engine/cinematic.rs`). The review calls this the
-      single highest-leverage addition. (~800 LOC)
-- [ ] **Floating gain numbers + transaction log** for every cash/score/meat
-      change (`ui/floaters.rs`). Check `macroquad-toolkit` first — a floating-
-      number widget is a plausible toolkit upgrade candidate. (~250 LOC)
-- [ ] **Economy legibility** — score becomes a visible prestige progress bar
-      with a target; cash and meat get iconed, explained tooltips; conversion
-      ratios surfaced in UI instead of living as magic numbers. (~250 LOC)
+- [x] **Pacing retune** (data-only): `visits_until_ready_by_tier` [2,3,4,5]
+      via `engine::visits_until_ready_for`, spawns 15s → 10s, 3 initial
+      spawn delays, 3 starting tables.
+- [x] **Onboarding system** — 8-step data-driven tutorial
+      (`state/tutorial.rs` + `assets/data/tutorial.json` +
+      `ui/tutorial_panel.rs`): cook → carry → serve → fatten → ready →
+      first processing → economy explainer. Skippable, resumes from save.
+- [x] **Guest state HUD** — `ui/guest_status.rs`: satisfaction + patience
+      bars, fattening pips, pulsing "PLUMP & READY" callout, and a hover
+      panel that explains every number.
+- [x] **Last Meal Lounge dramatization** — `state/cinematic.rs` (pure,
+      tested timeline: escort → curtain → quiet beat → reveal) +
+      `ui/lounge.rs` overlay; world pauses, input blocks, payoff panel
+      shows meat/renown/cash; `lounge` capture scene added. Audio sting
+      deferred to the Phase 4 audio system (no sound assets exist yet).
+- [x] **Floating gain numbers** — `state/floaters.rs` + `ui/floaters.rs`;
+      serving, departures, walkouts, processing, crafting, upgrades, and
+      prestige all spawn rising gain/loss numbers. (Toolkit had toast
+      notifications but no world-anchored floaters — noted as a future
+      toolkit upgrade candidate.)
+- [x] **Economy legibility** — renamed/iconed header tiles with hover
+      explanations for all six, prestige progress bar inside the Renown
+      tile, new Larder (total meat) tile.
 
 **Exit check:** replay the owner's `feedback.md` playtest script; a new player
 must reach a processing inside 5 minutes and be able to say what meat is for.

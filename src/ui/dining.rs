@@ -2,8 +2,7 @@ mod room;
 
 use super::actors::{draw_customer_sprite, draw_player_actor};
 use super::common::{
-    dish_label, draw_bar, draw_button, floor_to_screen, patience_color, patience_remaining_ratio,
-    station_draw_color, GOLD, LINE, MUTED, TEXT,
+    dish_label, draw_button, floor_to_screen, station_draw_color, GOLD, LINE, MUTED, TEXT,
 };
 use super::sprites::{self, Region};
 use super::types::UiActions;
@@ -19,8 +18,6 @@ fn draw_table(
     table_index: usize,
     customer: Option<&Customer>,
     data: &GameData,
-    progression: &ProgressionState,
-    now_ms: f64,
     selected_station: &Option<String>,
     game: &GameState,
     interior_sheet: Option<&Texture2D>,
@@ -100,7 +97,6 @@ fn draw_table(
         return;
     };
 
-    let patience = patience_remaining_ratio(customer, data, progression, now_ms);
     let mut chip_x = center.x - 26.0;
     if let Some(customer_type) = data.customer_type_by_id(&customer.customer_type) {
         for dish_color in customer_type.preferred_dishes.iter().take(3) {
@@ -113,15 +109,6 @@ fn draw_table(
             chip_x += 18.0;
         }
     }
-    draw_bar(
-        center.x - 50.0,
-        center.y + 60.0,
-        100.0,
-        6.0,
-        patience,
-        1.0,
-        patience_color(patience),
-    );
 
     let can_serve = customer.is_seated
         && selected_station.as_ref().is_some_and(|color| {
@@ -245,8 +232,6 @@ pub(super) fn draw_dining_room(
             table_index,
             table_customer,
             data,
-            progression,
-            now_ms,
             selected_station,
             game,
             interior_sheet,
@@ -269,7 +254,17 @@ pub(super) fn draw_dining_room(
             .unwrap_or(std::cmp::Ordering::Equal)
     });
     for customer in customers {
-        draw_customer_sprite(floor, customer, data, selected_station, textures, game, ui);
+        draw_customer_sprite(
+            floor,
+            customer,
+            data,
+            progression,
+            now_ms,
+            selected_station,
+            textures,
+            game,
+            ui,
+        );
     }
 
     if game.customers.is_empty() {

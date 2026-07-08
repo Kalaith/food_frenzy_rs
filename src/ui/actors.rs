@@ -2,10 +2,11 @@ use super::common::{
     customer_fallback_color, dish_label, draw_bar, draw_button, draw_tooltip, ellipsize,
     floor_to_screen, player_near_customer, station_draw_color, GOLD, LINE, TEXT,
 };
+use super::guest_status::{draw_guest_hover_panel, draw_guest_meters};
 use super::sprites::{self, Region};
 use super::types::UiActions;
 use crate::data::GameData;
-use crate::state::{Course, Customer, GameState, PlayerActor};
+use crate::state::{Course, Customer, GameState, PlayerActor, ProgressionState};
 use macroquad::prelude::*;
 use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
 use std::collections::HashMap;
@@ -209,6 +210,8 @@ pub(super) fn draw_customer_sprite(
     floor: Rect,
     customer: &Customer,
     data: &GameData,
+    progression: &ProgressionState,
+    now_ms: f64,
     selected_station: &Option<String>,
     textures: &HashMap<String, Texture2D>,
     game: &GameState,
@@ -267,15 +270,7 @@ pub(super) fn draw_customer_sprite(
         16.0,
         TEXT,
     );
-    draw_bar(
-        pos.x - 52.0,
-        pos.y - 72.0,
-        104.0,
-        6.0,
-        customer.total_satisfaction,
-        customer.max_satisfaction.total(),
-        LIME,
-    );
+    draw_guest_meters(pos, customer, data, progression, now_ms);
     if customer.bill > 0 {
         let tab = format!("${}", customer.bill);
         let tab_dim = measure_ui_text(&tab, None, 14, 1.0);
@@ -290,12 +285,11 @@ pub(super) fn draw_customer_sprite(
     }
     if customer.depart_timer_ms > 0.0 {
         draw_tooltip("Paying up...", pos.x, pos.y - 128.0);
-    } else if customer.is_seated && crate::engine::can_process_customer(customer, data) {
-        draw_tooltip("Ready for the lounge", pos.x, pos.y - 128.0);
     }
     if customer.is_seated {
         draw_order_courses(customer, data, pos);
     }
+    draw_guest_hover_panel(pos, sprite_rect, customer, data, progression, now_ms);
 
     if can_serve {
         draw_rectangle_lines(

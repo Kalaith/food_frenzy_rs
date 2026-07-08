@@ -21,6 +21,7 @@ pub fn update_game_world(
     timers.patience_accum_ms += dt_ms;
     timers.decay_accum_ms += dt_ms;
     timers.trait_accum_ms += dt_ms;
+    game_state.floaters.update(dt_ms);
     update_cooking(dt_ms, data, game_state);
     spawning::update_spawn(
         data,
@@ -47,6 +48,7 @@ fn update_customer_movement(
 ) {
     let max_tables = max_customer_count(data, progression);
     let travel = CUSTOMER_WALK_SPEED * (dt_ms / 1000.0);
+    let mut newly_seated = false;
     for customer in &mut game_state.customers {
         let (target_x, target_y) = restaurant_table_position(customer.table_index, max_tables);
         customer.target_x = target_x;
@@ -58,6 +60,7 @@ fn update_customer_movement(
         if distance <= travel || distance <= 1.0 {
             customer.floor_x = target_x;
             customer.floor_y = target_y;
+            newly_seated |= !customer.is_seated;
             customer.is_seated = true;
         } else {
             let step = travel / distance;
@@ -65,6 +68,9 @@ fn update_customer_movement(
             customer.floor_y += dy * step;
             customer.is_seated = false;
         }
+    }
+    if newly_seated {
+        game_state.tutorial_observe(crate::data::TutorialTrigger::GuestSeated, data);
     }
 }
 

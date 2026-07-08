@@ -1,0 +1,50 @@
+[
+  {
+    "id": "welcome",
+    "title": "Welcome to Feast Frenzy",
+    "body": "A guest is walking in. Every guest takes a table and orders a few courses. Keep them cozy and well fed.",
+    "trigger": "guest_seated"
+  },
+  {
+    "id": "cook",
+    "title": "Fire up a station",
+    "body": "Click a kitchen station (or press 1-4) that matches an ordered course color to start cooking.",
+    "trigger": "cooking_started"
+  },
+  {
+    "id": "carry",
+    "title": "Carry the dish",
+    "body": "When the dish is plated, click it to pick it up and carry it to the floor.",
+    "trigger": "dish_carried"
+  },
+  {
+    "id": "serve",
+    "title": "Serve the course",
+    "body": "Click Serve on the guest who ordered it. Preferred dishes (their colored dots) pay double.",
+    "trigger": "course_served"
+  },
+  {
+    "id": "fatten",
+    "title": "Fatten them up",
+    "body": "A fully served guest pays up, leaves happy... and comes back hungrier. The pink pips under a guest show how plump they are getting.",
+    "trigger": "guest_departed_fed"
+  },
+  {
+    "id": "ready",
+    "title": "Plump and ready",
+    "body": "When the pips fill, a guest is ready for the Last Meal Lounge. Watch for the glow when they next visit.",
+    "trigger": "guest_ready"
+  },
+  {
+    "id": "invite",
+    "title": "The Last Meal Lounge",
+    "body": "Click VIP on a plump, seated guest to invite them into the Lounge for their final course.",
+    "trigger": "guest_processed"
+  },
+  {
+    "id": "meat",
+    "title": "The house specialty",
+    "body": "The Lounge stocks your larder with premium meat. Spend it to attract richer clientele and craft recipes - richer guests mean rarer meat. That is the whole game.",
+    "trigger": "acknowledged"
+  }
+]

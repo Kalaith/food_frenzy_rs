@@ -10,7 +10,9 @@ use crate::lifecycle::{load_saved_game, start_new_game};
 use crate::persistence::save_game;
 use crate::player::handle_player_keyboard_movement;
 use crate::simulation::update_game_world;
-use crate::state::{GameState, GuestState, ProgressionState, Timers};
+use crate::state::{
+    FloaterKind, GameState, GuestState, ProcessingCinematic, ProgressionState, Timers,
+};
 use crate::ui::{
     draw_and_collect_hitboxes, draw_settings_screen, draw_title_screen, SettingsAction, TitleAction,
 };
@@ -95,6 +97,24 @@ impl App {
         match scene {
             "title" => self.app_screen = AppScreen::Title,
             "settings" => self.app_screen = AppScreen::Settings,
+            "lounge" => {
+                // The processing sequence mid-reveal, for verifying the
+                // dramatized payoff without playing to a first processing.
+                self.start_new_game();
+                self.seed_gameplay_demo();
+                let mut cinematic = ProcessingCinematic::new(
+                    "Marnie".to_string(),
+                    "pig".to_string(),
+                    4,
+                    "pig-meat".to_string(),
+                    320,
+                    64,
+                    (420.0, 300.0),
+                );
+                cinematic
+                    .advance(ProcessingCinematic::total_ms() - crate::state::REVEAL_MS + 400.0);
+                self.game_state.processing_cinematic = Some(cinematic);
+            }
             _ => {
                 // Default: jump straight into gameplay on a fresh save, then
                 // warm the world into a lively state so headless captures show
@@ -184,6 +204,10 @@ impl App {
     }
 
     fn tick_playing(&mut self, dt_ms: f32) {
+        if self.game_state.processing_cinematic.is_some() {
+            self.tick_processing_cinematic(dt_ms);
+            return;
+        }
         update_game_world(
             dt_ms,
             &self.data,
@@ -223,6 +247,59 @@ impl App {
             &mut self.guest_state,
         );
         clear_empty_selection(&mut self.selected_station, &mut self.game_state);
+        self.save_if_due(dt_ms);
+    }
+
+    /// While the Last Meal Lounge sequence plays, the world holds its breath:
+    /// simulation pauses, gameplay input is ignored, and the moment owns the
+    /// screen. Rewards were applied when the invite succeeded.
+    fn tick_processing_cinematic(&mut self, dt_ms: f32) {
+        self.game_state.floaters.update(dt_ms);
+        if let Some(cinematic) = &mut self.game_state.processing_cinematic {
+            cinematic.advance(dt_ms);
+        }
+
+        let _ = draw_and_collect_hitboxes(
+            &self.game_state,
+            &self.progression_state,
+            &self.data,
+            self.timers.elapsed_ms,
+            &self.selected_station,
+            &self.character_textures,
+            self.interior_sheet.as_ref(),
+        );
+
+        let dismiss = self
+            .game_state
+            .processing_cinematic
+            .as_ref()
+            .is_some_and(|cinematic| {
+                cinematic.finished()
+                    || (cinematic.can_dismiss()
+                        && (is_mouse_button_pressed(MouseButton::Left)
+                            || is_key_pressed(KeyCode::Space)
+                            || is_key_pressed(KeyCode::Enter)))
+            });
+        if dismiss {
+            if let Some(cinematic) = self.game_state.processing_cinematic.take() {
+                let (x, y) = cinematic.from_floor;
+                self.game_state.floaters.spawn_at(
+                    format!("+{} {}", cinematic.meat_gain, cinematic.meat_type),
+                    FloaterKind::Meat,
+                    x,
+                    y,
+                );
+                self.game_state.floaters.spawn_at(
+                    format!(
+                        "+{} renown  +${}",
+                        cinematic.renown_gain, cinematic.cash_gain
+                    ),
+                    FloaterKind::Renown,
+                    x,
+                    (y - 46.0).max(40.0),
+                );
+            }
+        }
         self.save_if_due(dt_ms);
     }
 

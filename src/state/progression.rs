@@ -53,10 +53,6 @@ impl ProgressionState {
             .any(|item| item == customer_type_id)
     }
 
-    pub fn unlocked_customer_count(&self) -> usize {
-        self.unlocked_customer_types.len()
-    }
-
     pub fn unlock_customer_type(&mut self, customer_type_id: &str) -> bool {
         if self.is_customer_unlocked(customer_type_id) {
             return false;
