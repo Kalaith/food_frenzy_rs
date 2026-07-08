@@ -192,11 +192,16 @@ Review goal: *make the café-hiding-a-butchery identity felt and shareable.*
 
 Actuals ran leaner than the estimates — the systems landed at full scope but
 denser (49 files, ~10.2k LOC + ~1.1k lines of JSON content + 7 sound assets).
-That is a `dungeon_core`-profile entry (10.1k LOC, 46 files, holds rank 16 on
-system density), now carrying 14 nameable systems added this cycle. Realistic
-landing: **rank 11–13 on this snapshot** — a 10–12 place climb — with rank 10
-reachable next cycle by growing content breadth (more customer types, decor
-variants, day-goal variety) rather than new systems.
+
+**Outcome (2026-07-08): 23 → 15 in `standing.md`** — the cycle's biggest
+climber, slotted just above `dungeon_core` (10.1k/46, the table's density
+benchmark) on a nearly identical size with a far larger single-cycle delta.
+Raw line count (10.2k vs the 11–14k mid-table) is what holds it below 14.
+
+**Path to rank 10 next cycle** (~+3k LOC of breadth, no new systems needed):
+more customer types/tiers on the existing trait engine, more dining events
+and prestige perks, decor/room variants for the tone system, day-goal
+variety, and deterministic simulation tests for the day/event/regular loops.
 
 End state: ~14.6k LOC, ~50 files, and a standing blurb that reads like
 `iron_fauna`'s — tutorialized fatten-and-process loop with a cinematic payoff,
