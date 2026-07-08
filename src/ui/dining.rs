@@ -280,6 +280,83 @@ pub(super) fn draw_dining_room(
     }
 
     draw_combo_meter(floor, game, progression, data);
+    draw_day_clock(floor, game, data);
+    draw_event_banner(floor, game, data);
+}
+
+/// The service-day clock: which day it is and how much of it is left.
+fn draw_day_clock(floor: Rect, game: &GameState, data: &GameData) {
+    let rect = Rect::new(floor.x + 12.0, floor.y + 12.0, 128.0, 40.0);
+    draw_rectangle(
+        rect.x,
+        rect.y,
+        rect.w,
+        rect.h,
+        Color::new(0.04, 0.035, 0.04, 0.88),
+    );
+    draw_rectangle_lines(rect.x, rect.y, rect.w, rect.h, 1.0, LINE);
+    draw_ui_text(
+        &format!("Day {}", game.day_cycle.day),
+        rect.x + 10.0,
+        rect.y + 17.0,
+        14.0,
+        GOLD,
+    );
+    let progress = game.day_cycle.day_progress(data.balance.day_length_ms);
+    draw_rectangle(
+        rect.x + 10.0,
+        rect.y + 26.0,
+        rect.w - 20.0,
+        6.0,
+        Color::new(0.16, 0.13, 0.15, 1.0),
+    );
+    draw_rectangle(
+        rect.x + 10.0,
+        rect.y + 26.0,
+        (rect.w - 20.0) * (1.0 - progress),
+        6.0,
+        Color::new(0.90, 0.70, 0.40, 1.0),
+    );
+}
+
+/// Banner for the dining event currently shaping the floor.
+fn draw_event_banner(floor: Rect, game: &GameState, data: &GameData) {
+    let Some(active) = &game.active_event else {
+        return;
+    };
+    let Some(event) = data.dining_event_by_id(&active.event_id) else {
+        return;
+    };
+    let text = format!(
+        "{}  ({:.0}s)  -  {}",
+        event.name,
+        (active.remaining_ms / 1000.0).max(0.0),
+        event.description
+    );
+    let dim = measure_ui_text(&text, None, 14, 1.0);
+    let rect = Rect::new(floor.x + 12.0, floor.y + 58.0, dim.width + 24.0, 26.0);
+    draw_rectangle(
+        rect.x,
+        rect.y,
+        rect.w,
+        rect.h,
+        Color::new(0.16, 0.07, 0.05, 0.92),
+    );
+    draw_rectangle_lines(
+        rect.x,
+        rect.y,
+        rect.w,
+        rect.h,
+        1.5,
+        Color::new(0.94, 0.60, 0.36, 1.0),
+    );
+    draw_ui_text(
+        &text,
+        rect.x + 12.0,
+        rect.y + 18.0,
+        14.0,
+        Color::new(0.96, 0.82, 0.66, 1.0),
+    );
 }
 
 /// Visible service-streak meter: the combo multiplier the score math already

@@ -97,5 +97,86 @@
     "progress": 0,
     "max_progress": 1,
     "reward": 500
+  },
+  {
+    "id": "day-one",
+    "name": "Opening Night",
+    "description": "Complete your first day of service",
+    "unlocked": false,
+    "progress": 0,
+    "max_progress": 1,
+    "reward": 100
+  },
+  {
+    "id": "week-of-service",
+    "name": "A Full Week",
+    "description": "Complete 7 days of service",
+    "unlocked": false,
+    "progress": 0,
+    "max_progress": 7,
+    "reward": 400
+  },
+  {
+    "id": "regular-goodbye",
+    "name": "An Old Friend",
+    "description": "Process a regular guest",
+    "unlocked": false,
+    "progress": 0,
+    "max_progress": 1,
+    "reward": 250
+  },
+  {
+    "id": "event-weathered",
+    "name": "Crisis Manager",
+    "description": "See 5 dining events through",
+    "unlocked": false,
+    "progress": 0,
+    "max_progress": 5,
+    "reward": 300
+  },
+  {
+    "id": "fresh-guarantee",
+    "name": "Fresh Guarantee",
+    "description": "Serve 15 fresh dishes",
+    "unlocked": false,
+    "progress": 0,
+    "max_progress": 15,
+    "reward": 200
+  },
+  {
+    "id": "streak-chef",
+    "name": "Untouchable Streak",
+    "description": "Hit a x20 service combo",
+    "unlocked": false,
+    "progress": 0,
+    "max_progress": 20,
+    "reward": 350
+  },
+  {
+    "id": "master-larder",
+    "name": "Master Larder",
+    "description": "Hold 30 meat in the larder at once",
+    "unlocked": false,
+    "progress": 0,
+    "max_progress": 30,
+    "reward": 300
+  },
+  {
+    "id": "full-house",
+    "name": "Full House",
+    "description": "Earn 3 full-house service bonuses",
+    "unlocked": false,
+    "progress": 0,
+    "max_progress": 3,
+    "reward": 250
+  },
+  {
+    "id": "deep-menu",
+    "name": "Deep Menu",
+    "description": "Unlock 8 recipes",
+    "unlocked": false,
+    "progress": 0,
+    "max_progress": 8,
+    "reward": 400
   }
 ]

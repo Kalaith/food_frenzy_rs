@@ -1,3 +1,4 @@
+mod events;
 mod guests;
 mod spawning;
 mod traits;
@@ -38,7 +39,29 @@ pub fn update_game_world(
     guests::update_satisfaction_decay(data, game_state, progression_state, timers);
     traits::update_traits(data, game_state, timers, progression_state);
     traits::update_trait_alerts(dt_ms, data, game_state, progression_state);
+    events::update_events(dt_ms, data, game_state, progression_state);
+    update_day_cycle(dt_ms, data, game_state, progression_state);
     update_lounge(dt_ms, game_state);
+}
+
+/// Tick the day clock; when a day ends the ledger pauses the world (the app
+/// stops simulating until the player opens the next day).
+fn update_day_cycle(
+    dt_ms: f32,
+    data: &GameData,
+    game_state: &mut GameState,
+    progression: &mut ProgressionState,
+) {
+    if game_state
+        .day_cycle
+        .update(dt_ms, data.balance.day_length_ms)
+    {
+        progression.record_day_completed();
+        game_state.add_message(format!(
+            "Day {} ends. The doors close for the night.",
+            game_state.day_cycle.day
+        ));
+    }
 }
 
 fn update_customer_movement(

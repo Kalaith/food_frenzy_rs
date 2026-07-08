@@ -270,6 +270,18 @@ pub(super) fn draw_customer_sprite(
         16.0,
         TEXT,
     );
+    if crate::engine::is_regular(customer, data) {
+        // Regulars get a little gold badge: the house knows this face.
+        let badge = vec2(pos.x - label_w * 0.5 - 8.0, pos.y - 103.0);
+        draw_circle(badge.x, badge.y, 7.0, Color::new(0.84, 0.60, 0.31, 1.0));
+        draw_ui_text(
+            "R",
+            badge.x - 4.0,
+            badge.y + 5.0,
+            12.0,
+            Color::new(0.1, 0.06, 0.03, 1.0),
+        );
+    }
     draw_guest_meters(pos, customer, data, progression, now_ms);
     if customer.bill > 0 {
         let tab = format!("${}", customer.bill);

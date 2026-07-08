@@ -32,6 +32,8 @@ pub struct ProcessingCinematic {
     pub cash_gain: i64,
     /// Where the guest was seated, in dining-floor world coordinates.
     pub from_floor: (f32, f32),
+    /// Personality farewell line shown in the reveal, if the guest had one.
+    pub farewell: Option<String>,
     pub elapsed_ms: f32,
 }
 
@@ -54,6 +56,7 @@ impl ProcessingCinematic {
             renown_gain,
             cash_gain,
             from_floor,
+            farewell: None,
             elapsed_ms: 0.0,
         }
     }

@@ -19,7 +19,7 @@
   "customer_patience_time": 135000,
   "trait_tick_interval": 8000,
   "satisfaction_decay_interval": 3000,
-  "prestige_score_requirement": 50000,
+  "prestige_score_requirement": 12000,
   "regular_ingredient_name": "regular",
   "satisfaction_decay_rate": 0.5,
   "overfeed_multiplier_for_low_appetite": 1.25,
@@ -45,5 +45,10 @@
   "trait_telegraph_ms": 5000,
   "combo_milestone_interval": 5,
   "combo_milestone_cash": 12,
-  "full_room_bonus_points": 40
+  "full_room_bonus_points": 40,
+  "day_length_ms": 180000,
+  "event_day_fraction": 0.35,
+  "regular_visits_threshold": 3,
+  "regular_yield_multiplier": 1.5,
+  "prestige_requirement_growth": 1.6
 }

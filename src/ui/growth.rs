@@ -296,7 +296,8 @@ fn draw_prestige_card(
     ui: &mut UiActions,
 ) {
     draw_card(card, "Prestige");
-    let progress = progression.total_score as f32 / data.balance.prestige_score_requirement as f32;
+    let requirement = crate::engine::prestige_requirement(data, progression);
+    let progress = progression.total_score as f32 / requirement.max(1) as f32;
     let compact = card.h < 108.0;
     let row_y = if compact {
         card.y + 30.0
@@ -305,10 +306,7 @@ fn draw_prestige_card(
     };
     draw_row_value(
         &format!("Level {}", progression.prestige_level),
-        &format!(
-            "{}/{}",
-            progression.total_score, data.balance.prestige_score_requirement
-        ),
+        &format!("{}/{}", progression.total_score, requirement),
         Rect::new(card.x + 12.0, row_y, card.w - 24.0, 22.0),
         TEXT,
     );
@@ -330,7 +328,7 @@ fn draw_prestige_card(
     }
 
     let prestige_rect = Rect::new(card.x + 12.0, card.y + card.h - 38.0, card.w - 24.0, 28.0);
-    let can_prestige = progression.total_score >= data.balance.prestige_score_requirement;
+    let can_prestige = progression.total_score >= requirement;
     draw_button(
         prestige_rect,
         &format!("Prestige +{}", progression.prestige_reward()),

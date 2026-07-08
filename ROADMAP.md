@@ -120,24 +120,29 @@ Review goal: *real decisions and kitchen tension in the moment-to-moment.*
 
 Review goal: *sustain the players Phases 1–2 retain.*
 
-- [ ] **Named regulars** — persistent, recognizable guests with names,
-      personality lines, and per-guest memory; processing a regular pays more
-      and cuts deeper (the review: "emotional weight (and darkness)").
-      (`state/regulars.rs` + name/personality JSON) (~500 LOC)
-- [ ] **Day/shift framing** — soft day cycle with an end-of-day ledger
-      (earnings, guests fattened, meat gained, next unlock progress) and
-      optional day goals (`state/day_cycle.rs` + `ui/day_summary.rs`).
-      (~650 LOC)
-- [ ] **Dining events** — a small data-driven event system that creates
-      situations, not modifiers: dinner rush, a health-inspector visit to
-      hide the Lounge from, a guest who suspects something, a VIP glutton.
-      (`engine/events.rs` + JSON) (~550 LOC)
-- [ ] **Content expansion** (mostly JSON + small code): recipes 6 → 12+ with
-      earlier first unlock, 3–4 new traits wired to the counterplay engine,
-      milestone goals between prestige walls, achievements to ~20. (~300 LOC)
-- [ ] **Prestige rework** — first wall lowered/curved, prestige grants a
-      choice of permanent meta-unlocks (keep one clientele tier, start
-      specialized) instead of a bare multiplier. (~250 LOC)
+- [x] **Named regulars** — 40-name pool + 5 personality archetypes
+      (`assets/data/regulars.json`); guests carry a personality (arrival
+      flavor line), earn a gold "R" badge and 1.5× Lounge yield at 3
+      satisfied visits, and their personality's farewell line becomes the
+      dark beat of the processing reveal.
+- [x] **Day/shift framing** — `state/day_cycle.rs` (tested) + on-floor day
+      clock + `ui/day_summary.rs` closing ledger (cash, renown, served,
+      lost, processed, meat, fresh, best combo) with a "tomorrow's goal"
+      line; the world pauses until the player opens the next day;
+      `day_summary` capture scene added.
+- [x] **Dining events** — `simulation/events.rs` +
+      `assets/data/dining_events.json`: one weighted event per day (dinner
+      rush, health inspector locking the Lounge, incognito critic, generous
+      evening) with an on-floor banner and countdown.
+- [x] **Content expansion** — recipes 6 → 12 with data-driven unlock
+      requirements (first unlock front-loaded to 2 pigs); 3 new passive
+      traits wired through the behavior table (Big Tipper deer, Tastemaker
+      cat, Gourmand bear); achievements 11 → 20, all wired to live
+      counters; day-ledger goal line gives near-term milestones.
+- [x] **Prestige rework** — first wall 50k → 12k renown with a 1.6×
+      per-level curve (`engine::prestige_requirement`); prestiging opens a
+      perk choice (keep clientele, keep specialization, war chest, stocked
+      cellar) in `ui/prestige_modal.rs`.
 
 ## Phase 4 — Presentation & tone (review: Large, ~1.5k LOC + assets)
 

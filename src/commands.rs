@@ -26,6 +26,8 @@ pub enum UiCommand {
     TutorialSkip,
     ChooseSpecialization(String),
     ToggleClienteleBoard,
+    ChoosePrestigePerk(String),
+    StartNextDay,
 }
 
 pub fn read_title_action(ui_hits: &TitleActions) -> Option<TitleAction> {
@@ -51,6 +53,15 @@ pub fn read_input_action(ui_hits: UiActions) -> Option<UiCommand> {
 
     let click = vec2(mouse_position().0, mouse_position().1);
     // Modal overlays first: they cover the rest of the screen.
+    if ui_hits
+        .day_next_button
+        .is_some_and(|rect| rect.contains(click))
+    {
+        return Some(UiCommand::StartNextDay);
+    }
+    if let Some(id) = find_map_hit(ui_hits.prestige_perk_buttons, click) {
+        return Some(UiCommand::ChoosePrestigePerk(id));
+    }
     if let Some(id) = find_map_hit(ui_hits.specialization_buttons, click) {
         return Some(UiCommand::ChooseSpecialization(id));
     }
@@ -193,6 +204,16 @@ pub fn apply_ui_command(
         }
         UiCommand::ToggleClienteleBoard => {
             game_state.show_clientele_board = !game_state.show_clientele_board;
+        }
+        UiCommand::ChoosePrestigePerk(perk_id) => {
+            crate::gameplay::confirm_prestige(&perk_id, data, game_state, progression_state);
+        }
+        UiCommand::StartNextDay => {
+            game_state.day_cycle.start_next_day();
+            game_state.add_message(format!(
+                "Day {} - the doors open. Make it count.",
+                game_state.day_cycle.day
+            ));
         }
     }
 }

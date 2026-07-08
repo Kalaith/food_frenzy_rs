@@ -3,6 +3,7 @@
 mod actors;
 mod clientele_board;
 mod common;
+mod day_summary;
 mod dining;
 mod floaters;
 mod growth;
@@ -11,6 +12,7 @@ mod kitchen;
 mod layout;
 mod lounge;
 mod menu;
+mod prestige_modal;
 mod specialization;
 mod sprites;
 mod tutorial_panel;

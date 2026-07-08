@@ -8,10 +8,13 @@
     },
     "customer_type": "pig",
     "unlocked": false,
-    "unlock_condition": "Process 5 Pig Girls",
+    "unlock_condition": "Process 2 Pig Girls",
     "profit_multiplier": 1.6,
     "base_value": 80,
-    "capacity_bonus": 2
+    "capacity_bonus": 2,
+    "unlock_requirements": {
+      "pig": 2
+    }
   },
   {
     "id": "golden-cutlets",
@@ -25,7 +28,10 @@
     "unlock_condition": "Process 3 Chicken Girls",
     "profit_multiplier": 1.8,
     "base_value": 95,
-    "capacity_bonus": 2
+    "capacity_bonus": 2,
+    "unlock_requirements": {
+      "chicken": 3
+    }
   },
   {
     "id": "tidal-platter",
@@ -39,7 +45,10 @@
     "unlock_condition": "Process 3 Fish Girls",
     "profit_multiplier": 1.9,
     "base_value": 105,
-    "capacity_bonus": 2
+    "capacity_bonus": 2,
+    "unlock_requirements": {
+      "fish": 3
+    }
   },
   {
     "id": "street-skewers",
@@ -53,7 +62,10 @@
     "unlock_condition": "Process 3 Fox Girls",
     "profit_multiplier": 2.0,
     "base_value": 115,
-    "capacity_bonus": 3
+    "capacity_bonus": 3,
+    "unlock_requirements": {
+      "fox": 3
+    }
   },
   {
     "id": "honey-roast-feast",
@@ -67,7 +79,10 @@
     "unlock_condition": "Process 2 Bear Girls",
     "profit_multiplier": 2.3,
     "base_value": 150,
-    "capacity_bonus": 4
+    "capacity_bonus": 4,
+    "unlock_requirements": {
+      "bear": 2
+    }
   },
   {
     "id": "rainbow-stew",
@@ -84,6 +99,117 @@
     "unlock_condition": "Process one of each animal type in a chain",
     "profit_multiplier": 3.0,
     "base_value": 220,
-    "capacity_bonus": 6
+    "capacity_bonus": 6,
+    "unlock_requirements": {
+      "pig": 1,
+      "cow": 1,
+      "sheep": 1,
+      "rabbit": 1,
+      "cat": 1
+    }
+  },
+  {
+    "id": "clover-club",
+    "name": "Clover Club Sandwich",
+    "description": "A light stack that keeps quick tables turning.",
+    "ingredients": {
+      "rabbit-meat": 4
+    },
+    "customer_type": "rabbit",
+    "unlocked": false,
+    "unlock_condition": "Process 2 Rabbit Girls",
+    "profit_multiplier": 1.5,
+    "base_value": 70,
+    "capacity_bonus": 1,
+    "unlock_requirements": {
+      "rabbit": 2
+    }
+  },
+  {
+    "id": "wool-white-stew",
+    "name": "Wool-White Stew",
+    "description": "A comforting bowl the whole flock swears by.",
+    "ingredients": {
+      "sheep-meat": 4
+    },
+    "customer_type": "sheep",
+    "unlocked": false,
+    "unlock_condition": "Process 2 Sheep Girls",
+    "profit_multiplier": 1.5,
+    "base_value": 72,
+    "capacity_bonus": 1,
+    "unlock_requirements": {
+      "sheep": 2
+    }
+  },
+  {
+    "id": "cream-tea-service",
+    "name": "Cream Tea Service",
+    "description": "Delicate, expensive, and endlessly refilled.",
+    "ingredients": {
+      "cat-meat": 4
+    },
+    "customer_type": "cat",
+    "unlocked": false,
+    "unlock_condition": "Process 2 Cat Girls",
+    "profit_multiplier": 1.7,
+    "base_value": 88,
+    "capacity_bonus": 2,
+    "unlock_requirements": {
+      "cat": 2
+    }
+  },
+  {
+    "id": "buttermilk-feast",
+    "name": "Buttermilk Feast",
+    "description": "Rich enough to draw the wealthier herd.",
+    "ingredients": {
+      "cow-meat": 5
+    },
+    "customer_type": "cow",
+    "unlocked": false,
+    "unlock_condition": "Process 3 Cow Girls",
+    "profit_multiplier": 1.8,
+    "base_value": 98,
+    "capacity_bonus": 2,
+    "unlock_requirements": {
+      "cow": 3
+    }
+  },
+  {
+    "id": "smoked-drake-platter",
+    "name": "Smoked Drake Platter",
+    "description": "Slow-smoked and worth the wait.",
+    "ingredients": {
+      "duck-meat": 5
+    },
+    "customer_type": "duck",
+    "unlocked": false,
+    "unlock_condition": "Process 3 Duck Girls",
+    "profit_multiplier": 1.9,
+    "base_value": 104,
+    "capacity_bonus": 2,
+    "unlock_requirements": {
+      "duck": 3
+    }
+  },
+  {
+    "id": "forest-charcuterie",
+    "name": "Forest Charcuterie",
+    "description": "A board of everything the woods provide.",
+    "ingredients": {
+      "deer-meat": 4,
+      "goat-meat": 3
+    },
+    "customer_type": "deer",
+    "unlocked": false,
+    "unlock_condition": "Process 3 Deer and 2 Goat Girls",
+    "profit_multiplier": 2.1,
+    "base_value": 130,
+    "capacity_bonus": 3,
+    "unlock_requirements": {
+      "deer": 3,
+      "goat": 2
+    }
   }
 ]

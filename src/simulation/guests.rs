@@ -47,6 +47,11 @@ pub(super) fn update_patience(
             }
         }
 
+        game_state.day_cycle.stats.guests_lost = game_state
+            .day_cycle
+            .stats
+            .guests_lost
+            .saturating_add(removed_ids.len() as u32);
         game_state
             .customers
             .retain(|customer| !removed_ids.contains(&customer.id));
@@ -88,14 +93,30 @@ pub(super) fn update_departures(
     let mut messages = Vec::new();
     let mut floaters = Vec::new();
     let mut any_ready = false;
+    let mut cash_earned = 0i64;
+    let mut served_count = 0u32;
+    let event_tip_multiplier = match game_state.active_event_effect(data) {
+        Some(crate::data::EventEffect::TipMultiplier { multiplier }) => *multiplier,
+        _ => 1.0,
+    };
     for id in &departed {
         let Some(customer) = game_state.customers.iter().find(|item| item.id == *id) else {
             continue;
         };
         let bill = customer.bill.max(0);
-        let tip = satisfied_tip(data, bill);
+        let mut tip = satisfied_tip(data, bill);
+        let mut tip_notes = String::new();
+        if customer.traits(data).big_tipper {
+            tip *= 2;
+            tip_notes.push_str(" A big tipper!");
+        }
+        if event_tip_multiplier > 1.0 {
+            tip = ((tip as f64) * event_tip_multiplier).round() as i64;
+        }
         let paid = bill.saturating_add(tip);
         progression.add_currency(paid);
+        cash_earned += paid;
+        served_count += 1;
         guest_state.record_guest_satisfied_visit(&customer.guest_id);
         let fed = customer.times_fed.saturating_add(1);
         let ready = fed >= visits_until_ready_for(data, &customer.customer_type);
@@ -107,7 +128,7 @@ pub(super) fn update_departures(
         };
         floaters.push((format!("+${paid}"), customer.floor_x, customer.floor_y));
         messages.push(format!(
-            "{} left glowing and settled ${paid} (${bill} +${tip} tip).{ready_hint}",
+            "{} left glowing and settled ${paid} (${bill} +${tip} tip).{tip_notes}{ready_hint}",
             customer.display_name
         ));
     }
@@ -116,6 +137,8 @@ pub(super) fn update_departures(
         .customers
         .retain(|customer| !departed.contains(&customer.id));
     game_state.combo = game_state.combo.saturating_add(1);
+    game_state.day_cycle.stats.cash_earned += cash_earned;
+    game_state.day_cycle.stats.guests_served += served_count;
     for (text, x, y) in floaters {
         game_state.floaters.spawn_at(text, FloaterKind::Cash, x, y);
     }

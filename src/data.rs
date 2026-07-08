@@ -11,6 +11,9 @@ const GAME_BALANCE_JSON: &str = include_str!("../assets/data/game_balance.json")
 const TUTORIAL_JSON: &str = include_str!("../assets/data/tutorial.json");
 const SPECIALIZATIONS_JSON: &str = include_str!("../assets/data/specializations.json");
 const TRAIT_BEHAVIORS_JSON: &str = include_str!("../assets/data/trait_behaviors.json");
+const REGULARS_JSON: &str = include_str!("../assets/data/regulars.json");
+const DINING_EVENTS_JSON: &str = include_str!("../assets/data/dining_events.json");
+const PRESTIGE_PERKS_JSON: &str = include_str!("../assets/data/prestige_perks.json");
 
 pub const STATION_COLORS: [&str; 4] = ["blue", "green", "yellow", "red"];
 
@@ -32,6 +35,15 @@ pub struct CustomerSpecialTraits {
     pub high_yield: bool,
     #[serde(default)]
     pub throws_food: bool,
+    /// Tips double when they leave satisfied.
+    #[serde(default)]
+    pub big_tipper: bool,
+    /// Fresh dishes served to them earn bonus renown.
+    #[serde(default)]
+    pub influencer: bool,
+    /// Always orders the maximum number of courses and pays half again more.
+    #[serde(default)]
+    pub gourmand: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -91,6 +103,10 @@ pub struct Recipe {
     pub profit_multiplier: f64,
     pub base_value: i64,
     pub capacity_bonus: i64,
+    /// Processed-count requirements (customer type id → count) that unlock
+    /// this recipe; drives `ProgressionState::update_recipe_unlocks`.
+    #[serde(default)]
+    pub unlock_requirements: HashMap<String, u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -136,6 +152,67 @@ pub struct SpecializationDef {
     pub description: String,
     pub flavor: String,
     pub effects: HashMap<String, f64>,
+}
+
+/// Name pool and personality archetypes for persistent guests.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RegularsData {
+    pub names: Vec<String>,
+    pub personalities: Vec<PersonalityDef>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PersonalityDef {
+    pub id: String,
+    /// Shown when the guest walks in ("bounces in humming a little tune").
+    pub arrival: String,
+    /// The processing farewell line — the dark beat in the Lounge reveal.
+    pub farewell: String,
+}
+
+/// A timed dining situation (rush, inspector, critic, generous mood).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EventDef {
+    pub id: String,
+    pub name: String,
+    pub announcement: String,
+    pub description: String,
+    pub duration_ms: f32,
+    pub weight: u32,
+    /// Earliest day this event can fire.
+    pub min_day: u32,
+    pub effect: EventEffect,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum EventEffect {
+    /// Spawn interval is multiplied (below 1.0 = faster arrivals).
+    SpawnRush { multiplier: f32 },
+    /// The Last Meal Lounge cannot be used.
+    LoungeClosed,
+    /// Serving courses earns multiplied renown.
+    ServeRenownMultiplier { multiplier: f64 },
+    /// Departure tips are multiplied.
+    TipMultiplier { multiplier: f64 },
+}
+
+/// A permanent bonus chosen when prestiging.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PrestigePerkDef {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub effect: PerkEffect,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum PerkEffect {
+    KeepClientele,
+    KeepSpecialization,
+    StartingCash { amount: i64 },
+    StartingMeat { meat: String, amount: i64 },
 }
 
 /// Player-facing behavior of a special trait: how it telegraphs, what the
@@ -215,6 +292,21 @@ pub struct GameBalance {
     /// Renown per seated guest when every table's order is complete at once.
     #[serde(default = "default_full_room_bonus_points")]
     pub full_room_bonus_points: i64,
+    /// Length of one service day.
+    #[serde(default = "default_day_length_ms")]
+    pub day_length_ms: f32,
+    /// How far into a day its dining event fires (0..1).
+    #[serde(default = "default_event_day_fraction")]
+    pub event_day_fraction: f32,
+    /// Satisfied visits after which a guest counts as a regular.
+    #[serde(default = "default_regular_visits_threshold")]
+    pub regular_visits_threshold: u32,
+    /// Meat-yield multiplier for processing a regular.
+    #[serde(default = "default_regular_yield_multiplier")]
+    pub regular_yield_multiplier: f32,
+    /// Each prestige multiplies the next renown requirement by this.
+    #[serde(default = "default_prestige_requirement_growth")]
+    pub prestige_requirement_growth: f64,
 }
 
 fn default_min_courses() -> u32 {
@@ -273,6 +365,26 @@ fn default_full_room_bonus_points() -> i64 {
     40
 }
 
+fn default_day_length_ms() -> f32 {
+    180_000.0
+}
+
+fn default_event_day_fraction() -> f32 {
+    0.35
+}
+
+fn default_regular_visits_threshold() -> u32 {
+    3
+}
+
+fn default_regular_yield_multiplier() -> f32 {
+    1.5
+}
+
+fn default_prestige_requirement_growth() -> f64 {
+    1.6
+}
+
 impl Default for GameBalance {
     fn default() -> Self {
         Self {
@@ -307,6 +419,11 @@ impl Default for GameBalance {
             max_courses: 3,
             visits_until_ready: 5,
             visits_until_ready_by_tier: vec![2, 3, 4, 5],
+            day_length_ms: default_day_length_ms(),
+            event_day_fraction: default_event_day_fraction(),
+            regular_visits_threshold: default_regular_visits_threshold(),
+            regular_yield_multiplier: default_regular_yield_multiplier(),
+            prestige_requirement_growth: default_prestige_requirement_growth(),
             dish_fresh_window_ms: default_dish_fresh_window_ms(),
             dish_spoil_ms: default_dish_spoil_ms(),
             fresh_bill_bonus_multiplier: default_fresh_bill_bonus_multiplier(),
@@ -328,7 +445,19 @@ pub struct GameData {
     pub tutorial_steps: Vec<TutorialStep>,
     pub specializations: Vec<SpecializationDef>,
     pub trait_behaviors: Vec<TraitBehavior>,
+    pub regulars: RegularsData,
+    pub dining_events: Vec<EventDef>,
+    pub prestige_perks: Vec<PrestigePerkDef>,
     pub balance: GameBalance,
+}
+
+impl Default for RegularsData {
+    fn default() -> Self {
+        Self {
+            names: vec!["Guest".to_string()],
+            personalities: Vec::new(),
+        }
+    }
 }
 
 impl GameData {
@@ -342,6 +471,9 @@ impl GameData {
             tutorial_steps: parse_or_fallback(TUTORIAL_JSON, "[]"),
             specializations: parse_or_fallback(SPECIALIZATIONS_JSON, "[]"),
             trait_behaviors: parse_or_fallback(TRAIT_BEHAVIORS_JSON, "[]"),
+            regulars: parse_or_fallback(REGULARS_JSON, "{}"),
+            dining_events: parse_or_fallback(DINING_EVENTS_JSON, "[]"),
+            prestige_perks: parse_or_fallback(PRESTIGE_PERKS_JSON, "[]"),
             balance: parse_or_fallback(GAME_BALANCE_JSON, "{}"),
         }
     }
@@ -362,6 +494,21 @@ impl GameData {
         self.trait_behaviors
             .iter()
             .find(|item| item.trait_key == trait_key)
+    }
+
+    pub fn dining_event_by_id(&self, id: &str) -> Option<&EventDef> {
+        self.dining_events.iter().find(|item| item.id == id)
+    }
+
+    pub fn personality_by_id(&self, id: &str) -> Option<&PersonalityDef> {
+        self.regulars
+            .personalities
+            .iter()
+            .find(|item| item.id == id)
+    }
+
+    pub fn prestige_perk_by_id(&self, id: &str) -> Option<&PrestigePerkDef> {
+        self.prestige_perks.iter().find(|item| item.id == id)
     }
 }
 
@@ -393,374 +540,4 @@ fn data_file_path(filename: &str, embedded: &str) -> String {
 // loud counterpart so a broken or drifted JSON asset fails CI instead of
 // silently shipping empty content.
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn parsed() -> GameData {
-        GameData {
-            customer_types: serde_json::from_str(CUSTOMER_TYPES_JSON)
-                .expect("customer_types.json must parse"),
-            dish_types: serde_json::from_str(DISH_TYPES_JSON).expect("dish_types.json must parse"),
-            upgrades: serde_json::from_str(UPGRADES_JSON).expect("upgrades.json must parse"),
-            recipes: serde_json::from_str(RECIPES_JSON).expect("recipes.json must parse"),
-            achievements: serde_json::from_str(ACHIEVEMENTS_JSON)
-                .expect("achievements.json must parse"),
-            tutorial_steps: serde_json::from_str(TUTORIAL_JSON).expect("tutorial.json must parse"),
-            specializations: serde_json::from_str(SPECIALIZATIONS_JSON)
-                .expect("specializations.json must parse"),
-            trait_behaviors: serde_json::from_str(TRAIT_BEHAVIORS_JSON)
-                .expect("trait_behaviors.json must parse"),
-            balance: serde_json::from_str(GAME_BALANCE_JSON).expect("game_balance.json must parse"),
-        }
-    }
-
-    // Keep in sync with the `get_effect` call sites in engine.rs/gameplay.rs;
-    // an unread effect key is a balance change that silently does nothing.
-    const KNOWN_EFFECTS: [&str; 9] = [
-        "capacity_gain_multiplier",
-        "combo_multiplier",
-        "cook_time_multiplier",
-        "max_customers_bonus",
-        "meat_yield_multiplier",
-        "patience_multiplier",
-        "recipe_value_multiplier",
-        "satisfaction_decay_multiplier",
-        "spawn_interval_multiplier",
-    ];
-
-    fn meat_key(customer_type_id: &str) -> String {
-        // Must match the key minted in `gameplay.rs` when a guest is processed.
-        format!("{customer_type_id}-meat")
-    }
-
-    fn assert_unique_ids(kind: &str, ids: &[&str]) {
-        let mut seen = std::collections::HashSet::new();
-        for id in ids {
-            assert!(seen.insert(*id), "duplicate {kind} id: {id}");
-        }
-    }
-
-    #[test]
-    fn all_embedded_assets_parse_strictly() {
-        let data = parsed();
-        assert!(!data.customer_types.is_empty(), "no customer types");
-        assert!(!data.dish_types.is_empty(), "no dish types");
-        assert!(!data.upgrades.is_empty(), "no upgrades");
-        assert!(!data.recipes.is_empty(), "no recipes");
-        assert!(!data.achievements.is_empty(), "no achievements");
-    }
-
-    #[test]
-    fn ids_are_unique_across_each_asset() {
-        let data = parsed();
-        assert_unique_ids(
-            "customer type",
-            &data
-                .customer_types
-                .iter()
-                .map(|item| item.id.as_str())
-                .collect::<Vec<_>>(),
-        );
-        assert_unique_ids(
-            "upgrade",
-            &data
-                .upgrades
-                .iter()
-                .map(|item| item.id.as_str())
-                .collect::<Vec<_>>(),
-        );
-        assert_unique_ids(
-            "recipe",
-            &data
-                .recipes
-                .iter()
-                .map(|item| item.id.as_str())
-                .collect::<Vec<_>>(),
-        );
-        assert_unique_ids(
-            "achievement",
-            &data
-                .achievements
-                .iter()
-                .map(|item| item.id.as_str())
-                .collect::<Vec<_>>(),
-        );
-    }
-
-    #[test]
-    fn dish_types_cover_exactly_the_station_colors() {
-        let data = parsed();
-        let colors: Vec<&str> = data
-            .dish_types
-            .iter()
-            .map(|dish| dish.color.as_str())
-            .collect();
-        assert_eq!(colors.len(), STATION_COLORS.len());
-        for color in STATION_COLORS {
-            assert!(colors.contains(&color), "missing dish for station {color}");
-        }
-        for dish in &data.dish_types {
-            assert!(
-                dish.cook_time_ms > 0.0,
-                "{}: cook time must be > 0",
-                dish.color
-            );
-            assert!(
-                !dish.examples.is_empty(),
-                "{}: needs example names",
-                dish.color
-            );
-        }
-    }
-
-    #[test]
-    fn customer_types_reference_real_dishes_and_meats() {
-        let data = parsed();
-        let valid_ingredients: Vec<String> = data
-            .customer_types
-            .iter()
-            .map(|item| meat_key(&item.id))
-            .chain(std::iter::once(
-                data.balance.regular_ingredient_name.clone(),
-            ))
-            .collect();
-
-        for customer_type in &data.customer_types {
-            assert!(
-                !customer_type.preferred_dishes.is_empty(),
-                "{}: needs at least one preferred dish",
-                customer_type.id
-            );
-            for dish_color in &customer_type.preferred_dishes {
-                assert!(
-                    data.dish_type_by_color(dish_color).is_some(),
-                    "{}: unknown preferred dish {dish_color}",
-                    customer_type.id
-                );
-            }
-            for ingredient in customer_type.unlock_cost.keys() {
-                assert!(
-                    valid_ingredients.contains(ingredient),
-                    "{}: unlock cost references unknown ingredient {ingredient}",
-                    customer_type.id
-                );
-            }
-            assert!(
-                customer_type.initially_unlocked || !customer_type.unlock_cost.is_empty(),
-                "{}: locked type must have an unlock cost or it is unreachable",
-                customer_type.id
-            );
-        }
-    }
-
-    #[test]
-    fn recipes_reference_real_customer_types_and_meats() {
-        let data = parsed();
-        let valid_ingredients: Vec<String> = data
-            .customer_types
-            .iter()
-            .map(|item| meat_key(&item.id))
-            .chain(std::iter::once(
-                data.balance.regular_ingredient_name.clone(),
-            ))
-            .collect();
-
-        for recipe in &data.recipes {
-            assert!(
-                !recipe.ingredients.is_empty(),
-                "{}: no ingredients",
-                recipe.id
-            );
-            for ingredient in recipe.ingredients.keys() {
-                assert!(
-                    valid_ingredients.contains(ingredient),
-                    "{}: unknown ingredient {ingredient}",
-                    recipe.id
-                );
-            }
-            if let Some(customer_type) = &recipe.customer_type {
-                assert!(
-                    data.customer_type_by_id(customer_type).is_some(),
-                    "{}: unknown customer type {customer_type}",
-                    recipe.id
-                );
-            }
-            assert!(
-                recipe.base_value > 0,
-                "{}: base value must be > 0",
-                recipe.id
-            );
-        }
-    }
-
-    #[test]
-    fn upgrade_effects_only_use_keys_the_engine_reads() {
-        let data = parsed();
-        for upgrade in &data.upgrades {
-            assert!(!upgrade.effects.is_empty(), "{}: no effects", upgrade.id);
-            for key in upgrade.effects.keys() {
-                assert!(
-                    KNOWN_EFFECTS.contains(&key.as_str()),
-                    "{}: effect key {key} is never read by the engine",
-                    upgrade.id
-                );
-            }
-            assert!(
-                upgrade.max_level >= 1,
-                "{}: max level must be >= 1",
-                upgrade.id
-            );
-            assert!(
-                upgrade.cost_growth >= 1.0,
-                "{}: cost growth below 1.0 makes upgrades cheaper over time",
-                upgrade.id
-            );
-        }
-    }
-
-    #[test]
-    fn achievements_and_balance_are_sane() {
-        let data = parsed();
-        for achievement in &data.achievements {
-            assert!(
-                achievement.max_progress > 0,
-                "{}: max progress must be > 0",
-                achievement.id
-            );
-        }
-        let balance = &data.balance;
-        assert!(balance.max_customers >= 1);
-        assert!(balance.visits_until_ready >= 1);
-        assert!(balance.min_courses >= 1);
-        assert!(balance.min_courses <= balance.max_courses);
-        assert!(balance.max_courses as usize <= STATION_COLORS.len());
-        assert!(balance.prestige_score_requirement > 0);
-        assert!(balance.special_table_process_time > 0.0);
-        assert!(
-            !balance.visits_until_ready_by_tier.is_empty(),
-            "tier readiness ladder drives early pacing"
-        );
-        for window in balance.visits_until_ready_by_tier.windows(2) {
-            assert!(
-                window[0] <= window[1],
-                "readiness ladder must not get cheaper at higher tiers"
-            );
-        }
-        assert!(balance
-            .visits_until_ready_by_tier
-            .iter()
-            .all(|visits| *visits >= 1));
-    }
-
-    #[test]
-    fn specializations_are_real_tradeoffs_on_known_effect_keys() {
-        let data = parsed();
-        assert!(data.specializations.len() >= 3, "need a real choice");
-        assert_unique_ids(
-            "specialization",
-            &data
-                .specializations
-                .iter()
-                .map(|item| item.id.as_str())
-                .collect::<Vec<_>>(),
-        );
-        for spec in &data.specializations {
-            assert!(
-                spec.effects.len() >= 2,
-                "{}: a specialization with one effect is a buff, not a trade-off",
-                spec.id
-            );
-            for key in spec.effects.keys() {
-                assert!(
-                    KNOWN_EFFECTS.contains(&key.as_str()),
-                    "{}: effect key {key} is never read by the engine",
-                    spec.id
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn trait_behaviors_cover_every_special_trait_flag() {
-        // One entry per bool on CustomerSpecialTraits, keyed by field name.
-        const TRAIT_FLAGS: [&str; 8] = [
-            "low_appetite",
-            "can_wander",
-            "multiplies_on_process",
-            "fast_spoilage",
-            "can_steal_food",
-            "can_eat_waste",
-            "high_yield",
-            "throws_food",
-        ];
-        let data = parsed();
-        for flag in TRAIT_FLAGS {
-            let behavior = data
-                .trait_behavior(flag)
-                .unwrap_or_else(|| panic!("missing trait behavior for {flag}"));
-            assert!(
-                !behavior.name.is_empty() && !behavior.hint.is_empty(),
-                "{flag}"
-            );
-            if behavior.telegraphed {
-                assert!(
-                    !behavior.telegraph.is_empty(),
-                    "{flag}: telegraphed traits need telegraph text"
-                );
-            }
-        }
-        assert_unique_ids(
-            "trait behavior",
-            &data
-                .trait_behaviors
-                .iter()
-                .map(|item| item.trait_key.as_str())
-                .collect::<Vec<_>>(),
-        );
-    }
-
-    #[test]
-    fn freshness_and_streak_tuning_is_sane() {
-        let data = parsed();
-        let balance = &data.balance;
-        assert!(balance.dish_fresh_window_ms > 0.0);
-        assert!(
-            balance.dish_spoil_ms > balance.dish_fresh_window_ms,
-            "dishes must go stale before they spoil"
-        );
-        assert!(balance.fresh_bill_bonus_multiplier >= 1.0);
-        assert!(balance.trait_telegraph_ms > 0.0);
-        assert!(balance.combo_milestone_interval >= 2);
-        assert!(balance.combo_milestone_cash > 0);
-        assert!(balance.full_room_bonus_points > 0);
-    }
-
-    #[test]
-    fn tutorial_steps_are_present_and_end_with_acknowledged() {
-        let data = parsed();
-        assert!(
-            data.tutorial_steps.len() >= 5,
-            "tutorial must cover the full cook->serve->fatten->process loop"
-        );
-        assert_unique_ids(
-            "tutorial step",
-            &data
-                .tutorial_steps
-                .iter()
-                .map(|step| step.id.as_str())
-                .collect::<Vec<_>>(),
-        );
-        assert_eq!(
-            data.tutorial_steps.last().map(|step| step.trigger),
-            Some(TutorialTrigger::Acknowledged),
-            "final step must wait for the player to acknowledge it"
-        );
-        for step in &data.tutorial_steps {
-            assert!(
-                !step.title.is_empty() && !step.body.is_empty(),
-                "{}",
-                step.id
-            );
-        }
-    }
-}
+mod tests;

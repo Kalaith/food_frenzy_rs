@@ -1,0 +1,42 @@
+[
+  {
+    "id": "dinner-rush",
+    "name": "Dinner Rush",
+    "announcement": "A queue forms outside - dinner rush!",
+    "description": "Guests arrive much faster while the rush lasts.",
+    "duration_ms": 45000,
+    "weight": 3,
+    "min_day": 1,
+    "effect": { "kind": "spawn_rush", "multiplier": 0.35 }
+  },
+  {
+    "id": "health-inspector",
+    "name": "Health Inspector",
+    "announcement": "A health inspector is snooping around. The Lounge stays shut.",
+    "description": "The Last Meal Lounge cannot be used until they leave.",
+    "duration_ms": 40000,
+    "weight": 2,
+    "min_day": 2,
+    "effect": { "kind": "lounge_closed" }
+  },
+  {
+    "id": "food-critic",
+    "name": "Incognito Critic",
+    "announcement": "A food critic is dining incognito - every course counts.",
+    "description": "Serving courses earns double renown while they watch.",
+    "duration_ms": 50000,
+    "weight": 2,
+    "min_day": 2,
+    "effect": { "kind": "serve_renown_multiplier", "multiplier": 2.0 }
+  },
+  {
+    "id": "generous-evening",
+    "name": "Generous Evening",
+    "announcement": "The room is in a generous mood - tips run double.",
+    "description": "Satisfied guests tip double while the mood lasts.",
+    "duration_ms": 45000,
+    "weight": 3,
+    "min_day": 1,
+    "effect": { "kind": "tip_multiplier", "multiplier": 2.0 }
+  }
+]

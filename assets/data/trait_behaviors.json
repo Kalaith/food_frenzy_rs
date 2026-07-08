@@ -62,5 +62,29 @@
     "counter": "They happily eat anything - non-preferred dishes still land well.",
     "hint": "Iron-stomach guests accept any dish nearly as well as a favorite.",
     "telegraphed": false
+  },
+  {
+    "trait": "big_tipper",
+    "name": "Big Tipper",
+    "telegraph": "",
+    "counter": "Send them home satisfied - they tip double.",
+    "hint": "Deer guests tip double when they leave happy. Worth the table time.",
+    "telegraphed": false
+  },
+  {
+    "trait": "influencer",
+    "name": "Tastemaker",
+    "telegraph": "",
+    "counter": "Serve them fresh dishes - their praise doubles the renown.",
+    "hint": "Cats talk. A fresh dish served to a tastemaker earns extra renown.",
+    "telegraphed": false
+  },
+  {
+    "trait": "gourmand",
+    "name": "Gourmand",
+    "telegraph": "",
+    "counter": "They always order a full course and pay half again as much.",
+    "hint": "Bears order the full menu and pay half again per course. A feast either way.",
+    "telegraphed": false
   }
 ]

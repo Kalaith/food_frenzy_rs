@@ -1,0 +1,26 @@
+[
+  {
+    "id": "loyal-clientele",
+    "name": "Loyal Clientele",
+    "description": "Your attracted clientele remember the house: keep every unlocked guest type through the reset.",
+    "effect": { "kind": "keep_clientele" }
+  },
+  {
+    "id": "house-momentum",
+    "name": "House Momentum",
+    "description": "The house keeps its identity: your chosen specialization survives the reset.",
+    "effect": { "kind": "keep_specialization" }
+  },
+  {
+    "id": "war-chest",
+    "name": "War Chest",
+    "description": "Squirrel away the takings: start the next run with an extra $300.",
+    "effect": { "kind": "starting_cash", "amount": 300 }
+  },
+  {
+    "id": "stocked-cellar",
+    "name": "Stocked Cellar",
+    "description": "A discreet cold room: start the next run with 4 pig-meat already in the larder.",
+    "effect": { "kind": "starting_meat", "meat": "pig-meat", "amount": 4 }
+  }
+]

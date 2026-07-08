@@ -26,7 +26,12 @@ pub(super) fn update_spawn(
         }
     }
 
-    let interval = f64::from(spawn_interval_ms(data, progression));
+    let mut interval = f64::from(spawn_interval_ms(data, progression));
+    if let Some(crate::data::EventEffect::SpawnRush { multiplier }) =
+        game_state.active_event_effect(data)
+    {
+        interval = (interval * f64::from(*multiplier)).max(1_500.0);
+    }
     if now_ms >= timers.next_spawn_ms {
         let _ = try_spawn_customer(data, game_state, progression, guest_state, now_ms);
         timers.next_spawn_ms = now_ms + interval;
@@ -77,8 +82,12 @@ fn try_spawn_customer(
     let guest_record = if let Some(guest) = returning {
         guest
     } else {
-        let guest_name = random_guest_name();
-        guest_state.create_guest(&guest_name, &customer_type.id)
+        let guest_name = macroquad_toolkit::rng::choose(&data.regulars.names)
+            .cloned()
+            .unwrap_or_else(|| "Guest".to_string());
+        let personality = macroquad_toolkit::rng::choose(&data.regulars.personalities)
+            .map(|personality| personality.id.clone());
+        guest_state.create_guest(&guest_name, &customer_type.id, personality)
     };
 
     let Some(table_index) = first_empty_table(game_state, max_customers) else {
@@ -118,20 +127,33 @@ fn try_spawn_customer(
     });
     guest_state.record_guest_visit(&guest_record.id);
     game_state.full_room_bonus_armed = true;
+    let arrival_line = guest_record
+        .personality
+        .as_deref()
+        .and_then(|personality| data.personality_by_id(personality))
+        .map(|personality| personality.arrival.clone());
+    let regular_prefix = if times_fed >= data.balance.regular_visits_threshold {
+        "Your regular "
+    } else {
+        ""
+    };
     if times_fed >= crate::engine::visits_until_ready_for(data, &customer_type.id) {
         game_state.add_message(format!(
-            "{} waddles back in, plump and ready. The Lounge awaits.",
+            "{regular_prefix}{} waddles back in, plump and ready. The Lounge awaits.",
             guest_record.name
         ));
     } else if times_fed == 0 {
+        let flavor = arrival_line
+            .map(|line| format!(" {} {line}.", guest_record.name))
+            .unwrap_or_default();
         game_state.add_message(format!(
-            "Welcome in, {}! Make them cozy at table {}.",
+            "Welcome in, {}! Table {}.{flavor}",
             guest_record.name,
             table_index + 1
         ));
     } else {
         game_state.add_message(format!(
-            "Welcome back, {}! Table {} (visit {}).",
+            "{regular_prefix}{} is back! Table {} (visit {}).",
             guest_record.name,
             table_index + 1,
             times_fed + 1
@@ -148,15 +170,4 @@ fn first_empty_table(game_state: &GameState, max_customers: usize) -> Option<usi
             .iter()
             .all(|customer| customer.table_index != *index)
     })
-}
-
-fn random_guest_name() -> String {
-    const NAMES: &[&str] = &[
-        "Marnie", "Lark", "Penny", "Bram", "Sora", "Rin", "Nova", "Haze", "Felix", "Tara", "Lune",
-        "Milo", "Ari", "Violet",
-    ];
-    macroquad_toolkit::rng::choose(NAMES)
-        .copied()
-        .unwrap_or("Guest")
-        .to_string()
 }

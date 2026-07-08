@@ -1,10 +1,12 @@
 use super::clientele_board::draw_clientele_board;
 use super::common::{draw_resource_tile, draw_tooltip, BACKGROUND, GOLD, LINE};
+use super::day_summary::draw_day_summary;
 use super::dining::draw_dining_room;
 use super::floaters::draw_floaters;
 use super::growth::{draw_event_feed, draw_growth_panel};
 use super::kitchen::draw_kitchen;
 use super::lounge::draw_processing_overlay;
+use super::prestige_modal::draw_prestige_modal;
 use super::specialization::draw_specialization_modal;
 use super::tutorial_panel::draw_tutorial_panel;
 use super::types::UiActions;
@@ -193,6 +195,8 @@ pub fn draw_and_collect_hitboxes(
     // whole screen while active.
     draw_clientele_board(game, progression, data, &mut ui);
     draw_specialization_modal(game, progression, data, &mut ui);
+    draw_prestige_modal(game, data, &mut ui);
+    draw_day_summary(game, progression, data, &mut ui);
     draw_processing_overlay(game);
 
     ui

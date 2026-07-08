@@ -154,7 +154,11 @@ pub fn roll_order(data: &GameData, customer_type_id: &str) -> Vec<Course> {
     let max = (data.balance.max_courses as i32).max(min);
     let available = (colors.len() as i32).max(1);
     let upper = max.min(available);
-    let count = if upper <= min {
+    let gourmand = data
+        .customer_type_by_id(customer_type_id)
+        .and_then(|customer_type| customer_type.special_traits.as_ref())
+        .is_some_and(|traits| traits.gourmand);
+    let count = if gourmand || upper <= min {
         upper
     } else {
         macroquad_toolkit::rng::gen_range(min, upper + 1)
@@ -206,15 +210,19 @@ pub fn serving_points(data: &GameData, satisfaction_gain: f32, preferred: bool) 
     total.max(0.0).floor() as i64
 }
 
-/// Cash a single served dish adds to the guest's tab. Preferred dishes are worth
-/// more, so serving what a guest actually craves pays off.
-pub fn serving_bill(data: &GameData, preferred: bool) -> i64 {
+/// Cash a single served dish adds to the guest's tab. Preferred dishes are
+/// worth more, so serving what a guest actually craves pays off; gourmands
+/// pay half again on every course.
+pub fn serving_bill(data: &GameData, preferred: bool, traits: &CustomerSpecialTraits) -> i64 {
     let base = data.balance.dish_bill_value.max(0) as f64;
-    let value = if preferred {
+    let mut value = if preferred {
         base * data.balance.preferred_bill_multiplier.max(0.0)
     } else {
         base
     };
+    if traits.gourmand {
+        value *= 1.5;
+    }
     value.floor().max(0.0) as i64
 }
 
@@ -222,6 +230,12 @@ pub fn serving_bill(data: &GameData, preferred: bool) -> i64 {
 pub fn satisfied_tip(data: &GameData, bill: i64) -> i64 {
     let tip = (bill as f64) * data.balance.satisfied_tip_rate.max(0.0);
     tip.floor().max(0.0) as i64
+}
+
+/// A guest counts as a regular after enough satisfied visits — recognizable,
+/// personable, and worth more in the Lounge.
+pub fn is_regular(customer: &Customer, data: &GameData) -> bool {
+    customer.times_fed >= data.balance.regular_visits_threshold.max(1)
 }
 
 pub fn vip_meat_gain(customer: &Customer, data: &GameData, progression: &ProgressionState) -> i64 {
@@ -235,8 +249,14 @@ pub fn vip_meat_gain(customer: &Customer, data: &GameData, progression: &Progres
         0.0
     };
     let trait_multiplier = if traits.high_yield { 1.35 } else { 1.0 };
-    let yield_multiplier =
-        progression.get_effect("meat_yield_multiplier", 1.0) as f32 * trait_multiplier;
+    let regular_multiplier = if is_regular(customer, data) {
+        data.balance.regular_yield_multiplier.max(1.0)
+    } else {
+        1.0
+    };
+    let yield_multiplier = progression.get_effect("meat_yield_multiplier", 1.0) as f32
+        * trait_multiplier
+        * regular_multiplier;
     let produced = (base * yield_multiplier).floor() + bonus;
 
     if produced <= 0.0 {
@@ -244,6 +264,14 @@ pub fn vip_meat_gain(customer: &Customer, data: &GameData, progression: &Progres
     } else {
         produced as i64
     }
+}
+
+/// The renown needed for the next prestige, growing with each level so the
+/// first wall lands early and later resets stay aspirational.
+pub fn prestige_requirement(data: &GameData, progression: &ProgressionState) -> i64 {
+    let base = data.balance.prestige_score_requirement.max(1) as f64;
+    let growth = data.balance.prestige_requirement_growth.max(1.0);
+    (base * growth.powi(progression.prestige_level as i32)).floor() as i64
 }
 
 pub fn vip_points(customer: &Customer, data: &GameData) -> i64 {

@@ -24,6 +24,12 @@ impl ProgressionState {
             specialization: None,
             specialization_effects: HashMap::new(),
             seen_trait_hints: Vec::new(),
+            days_completed: 0,
+            regulars_processed: 0,
+            events_completed: 0,
+            fresh_dishes_served: 0,
+            full_house_bonuses: 0,
+            prestige_perks: Vec::new(),
         };
 
         state.ensure_customer_unlocks(data);
@@ -197,42 +203,62 @@ impl ProgressionState {
         );
     }
 
+    /// Data-driven: a recipe unlocks once every processed-count requirement in
+    /// its `unlock_requirements` table is met.
     fn update_recipe_unlocks(&mut self) {
-        let unlocks = [
-            ("bacon-ramen", self.processed_count("pig") >= 5),
-            ("golden-cutlets", self.processed_count("chicken") >= 3),
-            ("tidal-platter", self.processed_count("fish") >= 3),
-            ("street-skewers", self.processed_count("fox") >= 3),
-            ("honey-roast-feast", self.processed_count("bear") >= 2),
-            (
-                "rainbow-stew",
-                self.has_processed_each(["pig", "cow", "sheep", "rabbit", "cat"]),
-            ),
-        ];
-
+        let counts = self.processed_customer_counts.clone();
+        let mut unlocked_total = 0i64;
         for recipe in &mut self.recipes {
-            if unlocks
-                .iter()
-                .any(|(recipe_id, unlocked)| recipe.id == *recipe_id && *unlocked)
+            if !recipe.unlocked
+                && !recipe.unlock_requirements.is_empty()
+                && recipe
+                    .unlock_requirements
+                    .iter()
+                    .all(|(customer_type, needed)| {
+                        counts.get(customer_type).copied().unwrap_or(0) >= *needed
+                    })
             {
                 recipe.unlocked = true;
             }
+            if recipe.unlocked {
+                unlocked_total += 1;
+            }
         }
+        self.update_achievement("deep-menu", unlocked_total);
     }
 
-    fn processed_count(&self, customer_type: &str) -> u32 {
-        self.processed_customer_counts
-            .get(customer_type)
-            .copied()
-            .unwrap_or(0)
+    pub fn record_day_completed(&mut self) {
+        self.days_completed = self.days_completed.saturating_add(1);
+        self.update_achievement("day-one", self.days_completed);
+        self.update_achievement("week-of-service", self.days_completed);
     }
 
-    fn has_processed_each<const N: usize>(&self, customer_types: [&str; N]) -> bool {
-        customer_types.iter().all(|customer_type| {
-            self.processed_customer_types
-                .iter()
-                .any(|seen| seen == customer_type)
-        })
+    pub fn record_regular_processed(&mut self) {
+        self.regulars_processed = self.regulars_processed.saturating_add(1);
+        self.update_achievement("regular-goodbye", self.regulars_processed);
+    }
+
+    pub fn record_event_completed(&mut self) {
+        self.events_completed = self.events_completed.saturating_add(1);
+        self.update_achievement("event-weathered", self.events_completed);
+    }
+
+    pub fn record_fresh_dish(&mut self) {
+        self.fresh_dishes_served = self.fresh_dishes_served.saturating_add(1);
+        self.update_achievement("fresh-guarantee", self.fresh_dishes_served);
+    }
+
+    pub fn record_full_house(&mut self) {
+        self.full_house_bonuses = self.full_house_bonuses.saturating_add(1);
+        self.update_achievement("full-house", self.full_house_bonuses);
+    }
+
+    pub fn record_combo_peak(&mut self, combo: u32) {
+        self.update_achievement("streak-chef", i64::from(combo));
+    }
+
+    pub fn record_larder_total(&mut self, total_meat: i64) {
+        self.update_achievement("master-larder", total_meat);
     }
 
     pub fn record_crafted_recipe(&mut self, recipe_id: &str, capacity_bonus: i64) {
@@ -290,8 +316,17 @@ impl ProgressionState {
         (score_reward + achievement_reward as i64 + capacity_reward).max(1)
     }
 
-    pub fn prestige(&mut self, data: &GameData) {
+    /// Reset for permanent multipliers, keeping whatever the chosen perk
+    /// preserves. Pass `None` for a plain reset (old saves, tests).
+    pub fn prestige(&mut self, data: &GameData, perk: Option<&crate::data::PrestigePerkDef>) {
+        use crate::data::PerkEffect;
+
         let reward = self.prestige_reward();
+        let kept_clientele = self.unlocked_customer_types.clone();
+        let kept_specialization = (
+            self.specialization.clone(),
+            self.specialization_effects.clone(),
+        );
 
         self.currency = self.currency.saturating_add(reward);
         self.prestige_level = self.prestige_level.saturating_add(1);
@@ -328,6 +363,26 @@ impl ProgressionState {
         {
             item.unlocked = true;
             item.progress = item.max_progress;
+        }
+
+        if let Some(perk) = perk {
+            self.prestige_perks.push(perk.id.clone());
+            match &perk.effect {
+                PerkEffect::KeepClientele => {
+                    self.unlocked_customer_types = kept_clientele;
+                }
+                PerkEffect::KeepSpecialization => {
+                    let (specialization, effects) = kept_specialization;
+                    self.specialization = specialization;
+                    self.specialization_effects = effects;
+                }
+                PerkEffect::StartingCash { amount } => {
+                    self.currency = self.currency.saturating_add((*amount).max(0));
+                }
+                // StartingMeat is applied by the caller: meat lives on
+                // GameState, not progression.
+                PerkEffect::StartingMeat { .. } => {}
+            }
         }
     }
 }

@@ -1,0 +1,37 @@
+{
+  "names": [
+    "Marnie", "Lark", "Penny", "Bram", "Sora", "Rin", "Nova", "Haze",
+    "Felix", "Tara", "Lune", "Milo", "Ari", "Violet", "Clove", "Sage",
+    "Juniper", "Fable", "Wren", "Poppy", "Basil", "Hazel", "Maple", "Ives",
+    "Odette", "Percy", "Quill", "Rosie", "Saffron", "Tansy", "Umber",
+    "Vesper", "Willa", "Yarrow", "Zinnia", "Briar", "Cosmo", "Dulce",
+    "Ember", "Fennel"
+  ],
+  "personalities": [
+    {
+      "id": "cheerful",
+      "arrival": "bounces in humming a little tune",
+      "farewell": "They were always smiling. The kitchen remembers."
+    },
+    {
+      "id": "shy",
+      "arrival": "slips in quietly and hopes for their usual corner",
+      "farewell": "They never made a fuss. Not even at the end."
+    },
+    {
+      "id": "haughty",
+      "arrival": "sweeps in expecting the best table",
+      "farewell": "They demanded the finest. Tonight, they are the finest."
+    },
+    {
+      "id": "dreamy",
+      "arrival": "drifts in gazing at the string lights",
+      "farewell": "They always said this place felt like a dream."
+    },
+    {
+      "id": "gluttonous",
+      "arrival": "arrives already asking about dessert",
+      "farewell": "They ate well. Exceptionally well. That was the point."
+    }
+  ]
+}

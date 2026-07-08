@@ -1,0 +1,112 @@
+//! Prestige perk choice: resetting the house is a milestone, so it comes with
+//! a decision — pick the one thing that survives the reset.
+
+use super::common::{GOLD, LINE, MUTED, TEXT};
+use super::types::UiActions;
+use crate::data::GameData;
+use crate::state::GameState;
+use macroquad::prelude::*;
+use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
+
+const CARD_W: f32 = 250.0;
+const CARD_H: f32 = 210.0;
+const CARD_GAP: f32 = 16.0;
+
+pub(super) fn draw_prestige_modal(game: &GameState, data: &GameData, ui: &mut UiActions) {
+    if !game.pending_prestige || data.prestige_perks.is_empty() {
+        return;
+    }
+
+    let width = screen_width();
+    let height = screen_height();
+    draw_rectangle(
+        0.0,
+        0.0,
+        width,
+        height,
+        Color::new(0.01, 0.008, 0.012, 0.75),
+    );
+    ui.modal_open = true;
+
+    let count = data.prestige_perks.len().min(4);
+    let total_w = CARD_W * count as f32 + CARD_GAP * (count as f32 - 1.0);
+    let start_x = width * 0.5 - total_w * 0.5;
+    let top = height * 0.5 - CARD_H * 0.5;
+
+    let headline = "PRESTIGE - WHAT SURVIVES THE RESET?";
+    let headline_dim = measure_ui_text(headline, None, 24, 1.0);
+    draw_ui_text(
+        headline,
+        width * 0.5 - headline_dim.width * 0.5,
+        top - 40.0,
+        24.0,
+        GOLD,
+    );
+
+    for (index, perk) in data.prestige_perks.iter().take(count).enumerate() {
+        let card = Rect::new(
+            start_x + index as f32 * (CARD_W + CARD_GAP),
+            top,
+            CARD_W,
+            CARD_H,
+        );
+        let hovered = card.contains(vec2(mouse_position().0, mouse_position().1));
+        draw_rectangle(
+            card.x,
+            card.y,
+            card.w,
+            card.h,
+            if hovered {
+                Color::new(0.10, 0.075, 0.085, 0.99)
+            } else {
+                Color::new(0.05, 0.042, 0.050, 0.98)
+            },
+        );
+        draw_rectangle_lines(
+            card.x,
+            card.y,
+            card.w,
+            card.h,
+            if hovered { 2.5 } else { 1.5 },
+            if hovered { GOLD } else { LINE },
+        );
+        draw_ui_text(&perk.name, card.x + 14.0, card.y + 28.0, 17.0, GOLD);
+        let mut y = card.y + 52.0;
+        for line in wrap_text(&perk.description, card.w - 28.0, 13.0) {
+            draw_ui_text(&line, card.x + 14.0, y, 13.0, TEXT);
+            y += 17.0;
+        }
+        draw_ui_text(
+            "click to prestige",
+            card.x + 14.0,
+            card.y + card.h - 12.0,
+            12.0,
+            if hovered { GOLD } else { MUTED },
+        );
+        ui.prestige_perk_buttons.insert(perk.id.clone(), card);
+    }
+}
+
+fn wrap_text(text: &str, max_width: f32, font: f32) -> Vec<String> {
+    let mut lines = Vec::new();
+    let mut current = String::new();
+    for word in text.split_whitespace() {
+        let candidate = if current.is_empty() {
+            word.to_string()
+        } else {
+            format!("{current} {word}")
+        };
+        if measure_ui_text(&candidate, None, font as u16, 1.0).width > max_width
+            && !current.is_empty()
+        {
+            lines.push(current);
+            current = word.to_string();
+        } else {
+            current = candidate;
+        }
+    }
+    if !current.is_empty() {
+        lines.push(current);
+    }
+    lines
+}

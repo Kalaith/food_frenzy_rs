@@ -1,8 +1,9 @@
-use crate::data::{GameData, TutorialTrigger};
+use crate::data::{EventEffect, GameData, PerkEffect, TutorialTrigger};
 use crate::engine::{
     can_process_customer, classify_dish_age, cooking_time_ms, freshness_bill_multiplier,
-    overfeed_multiplier, recipe_capacity_gain, recipe_value_multiplier, serving_bill, serving_gain,
-    serving_points, vip_meat_gain, vip_points, visits_until_ready_for, Freshness,
+    is_regular, overfeed_multiplier, prestige_requirement, recipe_capacity_gain,
+    recipe_value_multiplier, serving_bill, serving_gain, serving_points, vip_meat_gain, vip_points,
+    visits_until_ready_for, Freshness,
 };
 use crate::state::{
     FloaterAnchor, FloaterKind, GameState, GuestState, ProcessingCinematic, ProgressionState,
@@ -20,20 +21,58 @@ pub fn try_prestige(
     progression: &mut ProgressionState,
     game_state: &mut GameState,
 ) {
-    if progression.can_prestige(data.balance.prestige_score_requirement) {
-        progression.prestige(data);
+    let requirement = prestige_requirement(data, progression);
+    if !progression.can_prestige(requirement) {
         game_state.add_message(format!(
-            "Prestige complete! +{} currency gained.",
-            progression.prestige_level
+            "Prestige needs {requirement} renown. Keep the kitchen busy."
         ));
-        game_state.floaters.spawn(
-            format!("Prestige {}!", progression.prestige_level),
-            FloaterKind::Renown,
-            FloaterAnchor::Header,
-        );
-    } else {
-        game_state.add_message("Prestige unavailable yet.".to_string());
+        return;
     }
+    if data.prestige_perks.is_empty() {
+        progression.prestige(data, None);
+        announce_prestige(game_state, progression);
+    } else {
+        // Opens the perk-choice modal; `confirm_prestige` finishes the job.
+        game_state.pending_prestige = true;
+    }
+}
+
+/// Apply the chosen perk and run the reset (the perk modal's commit path).
+pub fn confirm_prestige(
+    perk_id: &str,
+    data: &GameData,
+    game_state: &mut GameState,
+    progression: &mut ProgressionState,
+) {
+    game_state.pending_prestige = false;
+    let requirement = prestige_requirement(data, progression);
+    let Some(perk) = data.prestige_perk_by_id(perk_id) else {
+        return;
+    };
+    if !progression.can_prestige(requirement) {
+        return;
+    }
+    progression.prestige(data, Some(perk));
+    if let PerkEffect::StartingMeat { meat, amount } = &perk.effect {
+        let entry = game_state.ingredients.entry(meat.clone()).or_insert(0);
+        if *entry != INFINITE_INGREDIENTS {
+            *entry = entry.saturating_add((*amount).max(0));
+        }
+    }
+    game_state.add_message(format!("Perk secured: {}.", perk.name));
+    announce_prestige(game_state, progression);
+}
+
+fn announce_prestige(game_state: &mut GameState, progression: &ProgressionState) {
+    game_state.add_message(format!(
+        "Prestige complete! The house reopens at level {}.",
+        progression.prestige_level
+    ));
+    game_state.floaters.spawn(
+        format!("Prestige {}!", progression.prestige_level),
+        FloaterKind::Renown,
+        FloaterAnchor::Header,
+    );
 }
 
 pub fn start_cooking(
@@ -123,10 +162,22 @@ pub fn serve_customer(
     }
 
     let is_overfed = game_state.customers[pos].overfed;
-    let score_gain = serving_points(data, satisfaction_gain, preferred) as f64;
+    let customer_traits = game_state.customers[pos].traits(data);
+    let mut score_gain = serving_points(data, satisfaction_gain, preferred) as f64;
+    if let Some(EventEffect::ServeRenownMultiplier { multiplier }) =
+        game_state.active_event_effect(data)
+    {
+        score_gain *= multiplier.max(1.0);
+    }
+    let served_fresh = dish_freshness == Freshness::Fresh;
+    if customer_traits.influencer && served_fresh {
+        // A tastemaker praising a fresh dish carries further.
+        score_gain *= 1.5;
+    }
     let total_gain = add_score(game_state, progression, score_gain, true);
     let fresh_multiplier = freshness_bill_multiplier(dish_freshness, &data.balance);
-    let bill_gain = ((serving_bill(data, preferred) as f64) * fresh_multiplier).round() as i64;
+    let bill_gain = ((serving_bill(data, preferred, &customer_traits) as f64) * fresh_multiplier)
+        .round() as i64;
     let (course_label, courses_done, courses_total, running_tab) = {
         let customer = &mut game_state.customers[pos];
         customer.order[course_idx].served = true;
@@ -139,9 +190,17 @@ pub fn serve_customer(
         )
     };
     progression.record_served_dish(preferred, is_overfed);
+    if served_fresh {
+        progression.record_fresh_dish();
+        game_state.day_cycle.stats.fresh_dishes += 1;
+    }
+    game_state.day_cycle.stats.renown_earned += total_gain;
     guest_state.record_guest_fed(&game_state.customers[pos].guest_id);
     game_state.combo = game_state.combo.saturating_add(1);
     game_state.chain = game_state.chain.saturating_add(1);
+    progression.record_combo_peak(game_state.combo);
+    let current_combo = game_state.combo;
+    game_state.day_cycle.record_combo(current_combo);
     game_state.add_message(format!(
         "{} served {course_label} ({dish_name}) +{total_gain} pts, tab ${running_tab} [{courses_done}/{courses_total}]",
         game_state.customers[pos].display_name
@@ -198,6 +257,7 @@ fn award_streak_bonuses(
             .all(|customer| customer.order_complete())
     {
         game_state.full_room_bonus_armed = false;
+        progression.record_full_house();
         let points = data.balance.full_room_bonus_points * game_state.customers.len().max(1) as i64;
         let awarded = add_score(game_state, progression, points as f64, false);
         game_state.floaters.spawn(
@@ -218,6 +278,15 @@ pub fn invite_customer_to_vip(
 ) -> bool {
     if game_state.special_table_busy {
         game_state.add_message("Last Meal Lounge is occupied right now.".to_string());
+        return false;
+    }
+    if matches!(
+        game_state.active_event_effect(data),
+        Some(EventEffect::LoungeClosed)
+    ) {
+        game_state.add_message(
+            "The inspector is still poking around - the Lounge stays shut.".to_string(),
+        );
         return false;
     }
 
@@ -257,12 +326,32 @@ pub fn invite_customer_to_vip(
     }
 
     let customer = game_state.customers.remove(index);
+    let was_regular = is_regular(&customer, data);
+    let farewell = guest_state
+        .guest_by_id(&customer.guest_id)
+        .and_then(|guest| guest.personality.as_deref())
+        .and_then(|personality| data.personality_by_id(personality))
+        .map(|personality| personality.farewell.clone());
     let meat_gain = vip_meat_gain(&customer, data, progression);
     let meat_type = format!("{}-meat", customer.customer_type);
     let entry = game_state.ingredients.entry(meat_type.clone()).or_insert(0);
     if *entry != INFINITE_INGREDIENTS {
         *entry = entry.saturating_add(meat_gain);
     }
+    let larder_total: i64 = game_state
+        .ingredients
+        .iter()
+        .filter(|(name, amount)| {
+            name.as_str() != data.balance.regular_ingredient_name && **amount > 0
+        })
+        .map(|(_, amount)| *amount)
+        .sum();
+    progression.record_larder_total(larder_total);
+    if was_regular {
+        progression.record_regular_processed();
+    }
+    game_state.day_cycle.stats.guests_processed += 1;
+    game_state.day_cycle.stats.meat_gained += meat_gain;
 
     let chain_value = game_state.chain.saturating_add(1);
     game_state.chain = chain_value;
@@ -281,8 +370,10 @@ pub fn invite_customer_to_vip(
         "{} steps into the Last Meal Lounge. Larder +{} {} (+{} renown).",
         customer.display_name, meat_gain, meat_type, awarded
     ));
+    game_state.day_cycle.stats.renown_earned += awarded;
+    game_state.day_cycle.stats.cash_earned += cash_gain;
     // Rewards are already banked above; the cinematic only stages the moment.
-    game_state.processing_cinematic = Some(ProcessingCinematic::new(
+    let mut cinematic = ProcessingCinematic::new(
         customer.display_name.clone(),
         customer.customer_type.clone(),
         meat_gain,
@@ -290,7 +381,9 @@ pub fn invite_customer_to_vip(
         awarded,
         cash_gain,
         (customer.floor_x, customer.floor_y),
-    ));
+    );
+    cinematic.farewell = farewell;
+    game_state.processing_cinematic = Some(cinematic);
     game_state.tutorial_observe(TutorialTrigger::GuestProcessed, data);
 
     true
@@ -383,6 +476,8 @@ pub fn craft_recipe(
     let awarded = add_score(game_state, progression, points, false);
     let cash_gain = awarded / 4;
     progression.add_currency(cash_gain);
+    game_state.day_cycle.stats.renown_earned += awarded;
+    game_state.day_cycle.stats.cash_earned += cash_gain;
     let bonus_capacity = recipe_capacity_gain(progression, recipe.capacity_bonus);
     progression.record_crafted_recipe(&recipe.id, bonus_capacity);
     game_state.add_message(format!("Crafted {} for {} points.", recipe.name, awarded));

@@ -11,7 +11,7 @@ use crate::persistence::save_game;
 use crate::player::handle_player_keyboard_movement;
 use crate::simulation::update_game_world;
 use crate::state::{
-    FloaterKind, GameState, GuestState, ProcessingCinematic, ProgressionState, Timers,
+    DayStats, FloaterKind, GameState, GuestState, ProcessingCinematic, ProgressionState, Timers,
 };
 use crate::ui::{
     draw_and_collect_hitboxes, draw_settings_screen, draw_title_screen, SettingsAction, TitleAction,
@@ -101,6 +101,22 @@ impl App {
                 self.start_new_game();
                 self.seed_gameplay_demo();
                 self.game_state.show_clientele_board = true;
+            }
+            "day_summary" => {
+                // End of a productive first day: the closing ledger is up.
+                self.start_new_game();
+                self.seed_gameplay_demo();
+                self.game_state.day_cycle.stats = DayStats {
+                    cash_earned: 184,
+                    renown_earned: 655,
+                    guests_served: 9,
+                    guests_lost: 1,
+                    meat_gained: 7,
+                    guests_processed: 2,
+                    fresh_dishes: 6,
+                    best_combo: 8,
+                };
+                self.game_state.day_cycle.summary_pending = true;
             }
             "specialization" => {
                 // First processing just happened and no style chosen yet:
@@ -223,15 +239,22 @@ impl App {
             self.tick_processing_cinematic(dt_ms);
             return;
         }
-        update_game_world(
-            dt_ms,
-            &self.data,
-            &mut self.game_state,
-            &mut self.progression_state,
-            &mut self.guest_state,
-            &mut self.timers,
-        );
-        handle_player_keyboard_movement(dt_ms, &mut self.game_state);
+        // The end-of-day ledger and the prestige choice both pause the world;
+        // their modals still take clicks below.
+        let paused = self.game_state.day_cycle.summary_pending || self.game_state.pending_prestige;
+        if paused {
+            self.game_state.floaters.update(dt_ms);
+        } else {
+            update_game_world(
+                dt_ms,
+                &self.data,
+                &mut self.game_state,
+                &mut self.progression_state,
+                &mut self.guest_state,
+                &mut self.timers,
+            );
+            handle_player_keyboard_movement(dt_ms, &mut self.game_state);
+        }
 
         let ui_hits = draw_and_collect_hitboxes(
             &self.game_state,
@@ -254,14 +277,16 @@ impl App {
             );
         }
 
-        handle_keyboard_shortcuts(
-            &self.data,
-            &mut self.selected_station,
-            &mut self.game_state,
-            &mut self.progression_state,
-            &mut self.guest_state,
-        );
-        clear_empty_selection(&mut self.selected_station, &mut self.game_state);
+        if !paused {
+            handle_keyboard_shortcuts(
+                &self.data,
+                &mut self.selected_station,
+                &mut self.game_state,
+                &mut self.progression_state,
+                &mut self.guest_state,
+            );
+            clear_empty_selection(&mut self.selected_station, &mut self.game_state);
+        }
         self.save_if_due(dt_ms);
     }
 

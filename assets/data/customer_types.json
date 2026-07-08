@@ -65,6 +65,9 @@
     "unlock_cost": {
       "rabbit-meat": 5,
       "sheep-meat": 3
+    },
+    "special_traits": {
+      "influencer": true
     }
   },
   {
@@ -82,7 +85,8 @@
       "sheep-meat": 5
     },
     "special_traits": {
-      "low_appetite": true
+      "low_appetite": true,
+      "big_tipper": true
     }
   },
   {
@@ -191,7 +195,8 @@
       "pig-meat": 8
     },
     "special_traits": {
-      "high_yield": true
+      "high_yield": true,
+      "gourmand": true
     }
   },
   {

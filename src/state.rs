@@ -3,11 +3,13 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
 mod cinematic;
+mod day_cycle;
 mod floaters;
 mod progression;
 mod tutorial;
 
 pub use cinematic::{CinematicPhase, ProcessingCinematic, REVEAL_MS};
+pub use day_cycle::{DayCycle, DayStats};
 pub use floaters::{FloaterAnchor, FloaterKind, Floaters};
 pub use tutorial::TutorialProgress;
 
@@ -252,6 +254,10 @@ pub struct GuestRecord {
     pub satisfied_visits: u32,
     pub processed_count: u32,
     pub last_seen_at: u64,
+    /// Personality archetype id (see `assets/data/regulars.json`); colors the
+    /// guest's arrival line and their Lounge farewell.
+    #[serde(default)]
+    pub personality: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -268,7 +274,12 @@ impl GuestState {
         format!("guest-{}", macroquad_toolkit::rng::gen_range(0, 999_999))
     }
 
-    pub fn create_guest(&mut self, name: &str, customer_type: &str) -> GuestRecord {
+    pub fn create_guest(
+        &mut self,
+        name: &str,
+        customer_type: &str,
+        personality: Option<String>,
+    ) -> GuestRecord {
         let now = macroquad::time::get_time() as u64;
         let guest = GuestRecord {
             id: Self::random_id(),
@@ -279,10 +290,15 @@ impl GuestState {
             satisfied_visits: 0,
             processed_count: 0,
             last_seen_at: now,
+            personality,
         };
 
         self.guests.push(guest.clone());
         guest
+    }
+
+    pub fn guest_by_id(&self, guest_id: &str) -> Option<&GuestRecord> {
+        self.guests.iter().find(|guest| guest.id == guest_id)
     }
 
     pub fn get_returning_unlocked_guest(
@@ -368,6 +384,19 @@ pub struct ProgressionState {
     /// Trait keys whose first-encounter hint has already been shown.
     #[serde(default)]
     pub seen_trait_hints: Vec<String>,
+    #[serde(default)]
+    pub days_completed: i64,
+    #[serde(default)]
+    pub regulars_processed: i64,
+    #[serde(default)]
+    pub events_completed: i64,
+    #[serde(default)]
+    pub fresh_dishes_served: i64,
+    #[serde(default)]
+    pub full_house_bonuses: i64,
+    /// Prestige perk ids chosen so far (one per prestige).
+    #[serde(default)]
+    pub prestige_perks: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -402,6 +431,22 @@ pub struct GameState {
     /// full-house bonus when every seated order completes at once.
     #[serde(default)]
     pub full_room_bonus_armed: bool,
+    /// The soft day/shift clock and per-day ledger.
+    #[serde(default)]
+    pub day_cycle: DayCycle,
+    /// The dining event currently in effect, if any.
+    #[serde(default)]
+    pub active_event: Option<ActiveEvent>,
+    /// True while the prestige perk choice modal is up.
+    #[serde(default)]
+    pub pending_prestige: bool,
+}
+
+/// A dining event in progress (definition lives in `GameData::dining_events`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActiveEvent {
+    pub event_id: String,
+    pub remaining_ms: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -459,7 +504,21 @@ impl GameState {
             processing_cinematic: None,
             show_clientele_board: false,
             full_room_bonus_armed: false,
+            day_cycle: DayCycle::default(),
+            active_event: None,
+            pending_prestige: false,
         }
+    }
+
+    /// The active dining event's effect, resolved against the data table.
+    pub fn active_event_effect<'data>(
+        &self,
+        data: &'data GameData,
+    ) -> Option<&'data crate::data::EventEffect> {
+        self.active_event
+            .as_ref()
+            .and_then(|active| data.dining_event_by_id(&active.event_id))
+            .map(|event| &event.effect)
     }
 
     /// Report a tutorial-worthy gameplay event; advances the tutorial when it
