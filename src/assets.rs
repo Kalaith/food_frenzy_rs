@@ -6,8 +6,8 @@ use std::collections::HashMap;
 const ASSET_PACK_PATH: &str = "assets.zip";
 
 const TITLE_TEXTURE_PATHS: [&str; 2] = [
-    "assets/images/food_frenzy_title.png",
-    "food_frenzy_title.png",
+    "assets/images/feast_frenzy_title.png",
+    "feast_frenzy_title.png",
 ];
 
 const INTERIOR_SHEET_PATH: &str = "assets/images/interior_sheet.png";

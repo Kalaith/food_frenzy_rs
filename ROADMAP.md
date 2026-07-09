@@ -17,7 +17,7 @@ current table:
 | 12 | `ai_defense` | ~12.2k | 30 |
 | 13 | `carriage_run` | ~11.2k | 28 |
 | 16 | `dungeon_core` | ~10.1k | 46 |
-| **23** | **`food_frenzy`** | **~6.0k** | **23** |
+| **23** | **`feast_frenzy`** | **~6.0k** | **23** |
 
 Two lessons from recent movement:
 
@@ -50,7 +50,7 @@ Hygiene before growth, per repo standards:
       them: `simulation.rs` → orchestrator + `spawning`/`guests`/`traits`;
       `ui/dining.rs` → tables/guests + `dining/room` (floor, fixtures, lounge).
 - [x] Reconcile the name everywhere — audited: player-facing copy is already
-      "Feast Frenzy" throughout; `food_frenzy`/`FOOD_FRENZY` remain as the
+      "Feast Frenzy" throughout; `feast_frenzy`/`feast_FRENZY` remain as the
       repo slug and env-var prefix by repo convention. No changes needed.
 - [x] Add `#[test]`s that parse every JSON asset + cross-reference checks
       (customer types ↔ meats ↔ recipes ↔ unlock costs, upgrade effect keys
@@ -175,7 +175,7 @@ Review goal: *make the café-hiding-a-butchery identity felt and shareable.*
 1. `cargo clippy --all-targets --all-features -- -D warnings` + `cargo test`.
 2. `..\macroquad-toolkit\scripts\capture_ui.ps1 -Scenes <new scenes>` for
    visual verification of new UI.
-3. `.\publish.ps1` from `food_frenzy/` after each phase lands (per AGENTS.md).
+3. `.\publish.ps1` from `feast_frenzy/` after each phase lands (per AGENTS.md).
 4. Playtest against `feedback.md`'s original complaints — the review treats
    those notes as the acceptance bar.
 

@@ -49,11 +49,11 @@ struct App {
 pub async fn run() {
     let mut app = App::load().await;
 
-    // Screenshot harness: when FOOD_FRENZY_CAPTURE_PATH is set, seed a scene,
+    // Screenshot harness: when feast_FRENZY_CAPTURE_PATH is set, seed a scene,
     // simulate deterministic frames, write a PNG, and exit. App::tick() has no
     // dt parameter (it reads get_frame_time() internally), so the capture
     // closure ignores the fixed timestep the harness would otherwise pass.
-    if let Some(config) = capture::CaptureConfig::from_env("FOOD_FRENZY") {
+    if let Some(config) = capture::CaptureConfig::from_env("feast_FRENZY") {
         app.begin_capture_scene(&config.scene);
         capture::run_capture(&config, |_dt| {
             app.tick();

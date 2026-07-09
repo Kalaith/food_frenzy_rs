@@ -5,7 +5,7 @@
 .DESCRIPTION
     Thin wrapper around the shared macroquad-toolkit capture script. Builds the
     debug exe and drives it through the env-var capture hook
-    (FOOD_FRENZY_CAPTURE_*) provided by macroquad_toolkit::capture in
+    (feast_FRENZY_CAPTURE_*) provided by macroquad_toolkit::capture in
     src/app.rs (invoked from src/main.rs). Scenes map to App::begin_capture_scene:
     "title" (main menu), "settings" (settings screen), and "gameplay" (default,
     starts a fresh game and jumps into the kitchen).
@@ -25,4 +25,4 @@ $ErrorActionPreference = "Stop"
 $gameDir = Split-Path -Parent $PSScriptRoot
 $shared = Join-Path (Split-Path -Parent $gameDir) "macroquad-toolkit\scripts\capture_ui.ps1"
 
-& $shared -GameDir $gameDir -Prefix "FOOD_FRENZY" -Scenes $Scenes -Frames $Frames -OutputDir $OutputDir -SkipBuild:$SkipBuild
+& $shared -GameDir $gameDir -Prefix "feast_FRENZY" -Scenes $Scenes -Frames $Frames -OutputDir $OutputDir -SkipBuild:$SkipBuild

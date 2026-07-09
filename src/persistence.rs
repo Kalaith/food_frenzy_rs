@@ -11,13 +11,13 @@ use std::path::PathBuf;
 /// v2: the Phase 1-3 systems landed; new fields fill via serde defaults and
 ///     `PlatedDish` reads the legacy bare-string form.
 const SAVE_VERSION: u32 = 2;
-const GAME_NAME: &str = "food_frenzy";
+const GAME_NAME: &str = "feast_frenzy";
 #[cfg(target_arch = "wasm32")]
 const SAVE_KEY: &str = "feast-frenzy-save.json";
 #[cfg(not(target_arch = "wasm32"))]
-const SAVE_FILE_NAME: &str = "food_frenzy.json";
+const SAVE_FILE_NAME: &str = "feast_frenzy.json";
 #[cfg(not(target_arch = "wasm32"))]
-const TEST_SAVE_PATH_ENV: &str = "FOOD_FRENZY_TEST_SAVE_PATH";
+const TEST_SAVE_PATH_ENV: &str = "feast_FRENZY_TEST_SAVE_PATH";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FoodFrenzySave {
@@ -148,9 +148,9 @@ mod tests {
     #[cfg(not(target_arch = "wasm32"))]
     fn can_save_and_load_round_trip() {
         let path =
-            std::env::temp_dir().join(format!("food_frenzy_save_test_{}.json", std::process::id()));
+            std::env::temp_dir().join(format!("feast_frenzy_save_test_{}.json", std::process::id()));
         let _ = std::fs::remove_file(&path);
-        std::env::set_var("FOOD_FRENZY_TEST_SAVE_PATH", &path);
+        std::env::set_var("feast_FRENZY_TEST_SAVE_PATH", &path);
 
         let data = GameData::load();
         let game_state = crate::state::GameState::new(&data);
@@ -171,7 +171,7 @@ mod tests {
         let loaded = load_game().unwrap_or(None);
         assert!(loaded.is_some());
 
-        std::env::remove_var("FOOD_FRENZY_TEST_SAVE_PATH");
+        std::env::remove_var("feast_FRENZY_TEST_SAVE_PATH");
         let _ = std::fs::remove_file(path);
     }
 

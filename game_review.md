@@ -8,7 +8,7 @@
 
 ## Project Name
 
-**Feast Frenzy** (repo/slug: `food_frenzy`; earlier working title "Food Frenzy"). The two names should be reconciled — pick one and use it everywhere.
+**Feast Frenzy** (repo/slug: `feast_frenzy`; earlier working title "Feast Frenzy"). The two names should be reconciled — pick one and use it everywhere.
 
 ## Genre
 
@@ -339,4 +339,4 @@ The hardest part — a complete, working economic loop with real content — alr
 
 ---
 
-*Note on documentation: reconcile the game's name (Feast Frenzy vs Food Frenzy) and decide how honest the public README should be about the premise. The current README's "wholesome café" framing works as deliberate marketing misdirection — but the team should choose that consciously, not by accident.*
+*Note on documentation: reconcile the game's name (Feast Frenzy vs Feast Frenzy) and decide how honest the public README should be about the premise. The current README's "wholesome café" framing works as deliberate marketing misdirection — but the team should choose that consciously, not by accident.*

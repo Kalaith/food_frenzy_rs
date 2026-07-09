@@ -2,7 +2,7 @@
 
 ## Project
 
-**Name:** Food Frenzy
+**Name:** Feast Frenzy
 
 **One Sentence Pitch:** Feed your clients, fatten them up and use the new preiumn ingredients to attract weathier clients
 
