@@ -425,8 +425,8 @@ impl App {
     }
 
     fn save_if_due(&mut self, dt_ms: f32) {
-        self.timers.save_accum_ms += dt_ms;
-        if self.timers.save_accum_ms < SAVE_INTERVAL_MS {
+        self.timers.save_timer.set_interval(SAVE_INTERVAL_MS);
+        if !self.timers.save_timer.tick_once(dt_ms) {
             return;
         }
 
@@ -439,6 +439,5 @@ impl App {
         ) {
             self.game_state.add_message(format!("Save failed: {error}"));
         }
-        self.timers.save_accum_ms = 0.0;
     }
 }

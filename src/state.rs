@@ -1,4 +1,5 @@
 use crate::data::{Achievement, CustomerSpecialTraits, GameData, Recipe, TutorialTrigger, Upgrade};
+use macroquad_toolkit::timing::IntervalTimer;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
@@ -475,15 +476,26 @@ pub enum SfxCue {
     Event,
 }
 
+/// Interval accumulators start with a placeholder duration: every call site
+/// sets the real interval via `set_interval` immediately before ticking, so
+/// the constructed value here never matters.
+fn default_interval_timer() -> IntervalTimer {
+    IntervalTimer::new(1.0)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Timers {
     pub elapsed_ms: f64,
     pub next_spawn_ms: f64,
     pub spawn_step: usize,
-    pub decay_accum_ms: f32,
-    pub patience_accum_ms: f32,
-    pub trait_accum_ms: f32,
-    pub save_accum_ms: f32,
+    #[serde(default = "default_interval_timer")]
+    pub decay_timer: IntervalTimer,
+    #[serde(default = "default_interval_timer")]
+    pub patience_timer: IntervalTimer,
+    #[serde(default = "default_interval_timer")]
+    pub trait_timer: IntervalTimer,
+    #[serde(default = "default_interval_timer")]
+    pub save_timer: IntervalTimer,
 }
 
 impl Timers {
@@ -492,10 +504,10 @@ impl Timers {
             elapsed_ms: 0.0,
             next_spawn_ms: 0.0,
             spawn_step: 0,
-            decay_accum_ms: 0.0,
-            patience_accum_ms: 0.0,
-            trait_accum_ms: 0.0,
-            save_accum_ms: 0.0,
+            decay_timer: default_interval_timer(),
+            patience_timer: default_interval_timer(),
+            trait_timer: default_interval_timer(),
+            save_timer: default_interval_timer(),
         }
     }
 }

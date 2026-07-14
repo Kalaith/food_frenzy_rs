@@ -5,9 +5,12 @@
 use super::common::{floor_to_screen, ACCENT, SUCCESS};
 use crate::state::{FloaterAnchor, FloaterKind, GameState};
 use macroquad::prelude::*;
+use macroquad_toolkit::colors::with_alpha;
+use macroquad_toolkit::math::{clamp01, ease_in_quad};
 use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
 
 const MEAT_PINK: Color = Color::new(0.93, 0.52, 0.60, 1.0);
+const BACKING: Color = Color::new(0.02, 0.02, 0.025, 1.0);
 const RISE_PX: f32 = 46.0;
 
 fn kind_color(kind: FloaterKind) -> Color {
@@ -23,7 +26,7 @@ pub(super) fn draw_floaters(floor: Rect, game: &GameState) {
     let mut header_row = 0usize;
     for floater in &game.floaters.active {
         let progress = floater.progress();
-        let alpha = (1.0 - progress * progress).clamp(0.0, 1.0);
+        let alpha = clamp01(1.0 - ease_in_quad(progress));
         let font = 16.0;
         let dim = measure_ui_text(&floater.text, None, font as u16, 1.0);
 
@@ -45,15 +48,14 @@ pub(super) fn draw_floaters(floor: Rect, game: &GameState) {
             }
         };
 
-        let mut color = kind_color(floater.kind);
-        color.a = alpha;
+        let color = with_alpha(kind_color(floater.kind), alpha);
         // Soft backing so the number reads over any floor art.
         draw_rectangle(
             x - 6.0,
             y - font + 2.0,
             dim.width + 12.0,
             font + 6.0,
-            Color::new(0.02, 0.02, 0.025, 0.55 * alpha),
+            with_alpha(BACKING, 0.55 * alpha),
         );
         draw_ui_text(&floater.text, x, y, font, color);
     }

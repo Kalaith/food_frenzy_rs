@@ -3,6 +3,7 @@
 //! line. Pure timing/state — drawing lives in `ui::lounge`. Rewards are
 //! applied when the invite succeeds; this struct only carries what to show.
 
+use macroquad_toolkit::timing::Timeline;
 use serde::{Deserialize, Serialize};
 
 pub const ESCORT_MS: f32 = 1_400.0;
@@ -61,8 +62,28 @@ impl ProcessingCinematic {
         }
     }
 
+    /// The fixed phase table, in order. Shared by [`total_ms`](Self::total_ms)
+    /// and [`phase`](Self::phase) via a fresh [`Timeline`] built from it.
+    fn phase_table() -> Vec<(CinematicPhase, f32)> {
+        vec![
+            (CinematicPhase::Escort, ESCORT_MS),
+            (CinematicPhase::Curtain, CURTAIN_MS),
+            (CinematicPhase::Quiet, QUIET_MS),
+            (CinematicPhase::Reveal, REVEAL_MS),
+        ]
+    }
+
+    /// A [`Timeline`] advanced to this cinematic's current `elapsed_ms`.
+    /// Rebuilt on demand rather than stored, since `elapsed_ms` is the only
+    /// field persisted to save data.
+    fn timeline_at(&self) -> Timeline<CinematicPhase> {
+        let mut timeline = Timeline::new(Self::phase_table());
+        timeline.advance(self.elapsed_ms);
+        timeline
+    }
+
     pub fn total_ms() -> f32 {
-        ESCORT_MS + CURTAIN_MS + QUIET_MS + REVEAL_MS
+        Timeline::new(Self::phase_table()).total_duration()
     }
 
     pub fn advance(&mut self, dt_ms: f32) {
@@ -71,23 +92,14 @@ impl ProcessingCinematic {
 
     /// Current phase and 0..1 progress within it.
     pub fn phase(&self) -> (CinematicPhase, f32) {
-        let mut remaining = self.elapsed_ms;
-        for (phase, duration) in [
-            (CinematicPhase::Escort, ESCORT_MS),
-            (CinematicPhase::Curtain, CURTAIN_MS),
-            (CinematicPhase::Quiet, QUIET_MS),
-            (CinematicPhase::Reveal, REVEAL_MS),
-        ] {
-            if remaining < duration {
-                return (phase, (remaining / duration).clamp(0.0, 1.0));
-            }
-            remaining -= duration;
+        match self.timeline_at().current() {
+            Some((phase, progress)) => (*phase, progress),
+            None => (CinematicPhase::Reveal, 1.0),
         }
-        (CinematicPhase::Reveal, 1.0)
     }
 
     pub fn finished(&self) -> bool {
-        self.elapsed_ms >= Self::total_ms()
+        self.timeline_at().finished()
     }
 
     /// The payoff is on screen, so a click may dismiss the sequence early.

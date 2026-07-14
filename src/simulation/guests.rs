@@ -5,7 +5,11 @@ use crate::data::{GameData, TutorialTrigger};
 use crate::engine::{satisfied_tip, visits_until_ready_for};
 use crate::state::{FloaterKind, GameState, GuestState, ProgressionState, Timers};
 
+/// Impatience is checked once per second of accumulated playtime.
+const PATIENCE_CHECK_INTERVAL_MS: f32 = 1_000.0;
+
 pub(super) fn update_patience(
+    dt_ms: f32,
     data: &GameData,
     game_state: &mut GameState,
     progression: &mut ProgressionState,
@@ -13,12 +17,14 @@ pub(super) fn update_patience(
     now_ms: f64,
 ) {
     if game_state.customers.is_empty() {
-        timers.patience_accum_ms = 0.0;
+        timers.patience_timer.reset();
         return;
     }
 
-    while timers.patience_accum_ms >= 1_000.0_f32 {
-        timers.patience_accum_ms -= 1_000.0;
+    timers
+        .patience_timer
+        .set_interval(PATIENCE_CHECK_INTERVAL_MS);
+    for _ in 0..timers.patience_timer.tick(dt_ms) {
         let removed_ids = impatient_customer_ids(data, game_state, progression, now_ms);
         if removed_ids.is_empty() {
             continue;
@@ -177,6 +183,7 @@ pub(super) fn update_course_pacing(dt_ms: f32, data: &GameData, game_state: &mut
 }
 
 pub(super) fn update_satisfaction_decay(
+    dt_ms: f32,
     data: &GameData,
     game_state: &mut GameState,
     progression: &ProgressionState,
@@ -187,14 +194,13 @@ pub(super) fn update_satisfaction_decay(
         return;
     }
     if game_state.customers.is_empty() {
-        timers.decay_accum_ms = 0.0;
+        timers.decay_timer.reset();
         return;
     }
 
     let decay_rate = crate::engine::satisfaction_decay_rate(data, progression);
-    let decay_tick = decay_interval;
-    while timers.decay_accum_ms >= decay_tick {
-        timers.decay_accum_ms -= decay_tick;
+    timers.decay_timer.set_interval(decay_interval);
+    for _ in 0..timers.decay_timer.tick(dt_ms) {
         for customer in &mut game_state.customers {
             customer.satisfaction.decay_all(decay_rate);
             customer.refresh_totals();

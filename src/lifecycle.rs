@@ -98,7 +98,7 @@ fn initialize_active_game(
     if timers.next_spawn_ms <= 0.0 {
         timers.next_spawn_ms = f64::from(data.balance.customer_spawn_interval);
     }
-    timers.save_accum_ms = 0.0;
+    timers.save_timer.reset();
 }
 
 fn ensure_compatibility(

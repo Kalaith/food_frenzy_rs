@@ -17,6 +17,7 @@ use std::collections::HashSet;
 pub const MONKEY_CRANKY_THRESHOLD: f32 = 60.0;
 
 pub(super) fn update_traits(
+    dt_ms: f32,
     data: &GameData,
     game_state: &mut GameState,
     timers: &mut Timers,
@@ -24,13 +25,12 @@ pub(super) fn update_traits(
 ) {
     let tick = data.balance.trait_tick_interval;
     if tick <= 0.0 || game_state.customers.is_empty() {
-        timers.trait_accum_ms = 0.0;
+        timers.trait_timer.reset();
         return;
     }
 
-    let trait_tick = tick;
-    while timers.trait_accum_ms >= trait_tick {
-        timers.trait_accum_ms -= trait_tick;
+    timers.trait_timer.set_interval(tick);
+    for _ in 0..timers.trait_timer.tick(dt_ms) {
         for index in 0..game_state.customers.len() {
             tick_customer_traits(index, data, game_state, progression);
         }

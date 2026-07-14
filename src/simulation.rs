@@ -19,9 +19,6 @@ pub fn update_game_world(
 ) {
     timers.elapsed_ms += f64::from(dt_ms);
     let now_ms = timers.elapsed_ms;
-    timers.patience_accum_ms += dt_ms;
-    timers.decay_accum_ms += dt_ms;
-    timers.trait_accum_ms += dt_ms;
     game_state.floaters.update(dt_ms);
     update_cooking(dt_ms, data, game_state);
     spawning::update_spawn(
@@ -36,9 +33,9 @@ pub fn update_game_world(
     update_player_movement(dt_ms, game_state);
     guests::update_course_pacing(dt_ms, data, game_state);
     guests::update_departures(dt_ms, data, game_state, progression_state, guest_state);
-    guests::update_patience(data, game_state, progression_state, timers, now_ms);
-    guests::update_satisfaction_decay(data, game_state, progression_state, timers);
-    traits::update_traits(data, game_state, timers, progression_state);
+    guests::update_patience(dt_ms, data, game_state, progression_state, timers, now_ms);
+    guests::update_satisfaction_decay(dt_ms, data, game_state, progression_state, timers);
+    traits::update_traits(dt_ms, data, game_state, timers, progression_state);
     traits::update_trait_alerts(dt_ms, data, game_state, progression_state);
     events::update_events(dt_ms, data, game_state, progression_state);
     update_day_cycle(dt_ms, data, game_state, progression_state);

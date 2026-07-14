@@ -6,6 +6,7 @@ use super::common::{floor_to_screen, LINE};
 use crate::data::GameData;
 use crate::state::{Customer, GameState, ProgressionState};
 use macroquad::prelude::*;
+use macroquad_toolkit::colors::with_alpha;
 use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
 
 /// Fallback table-talk for guests without a personality archetype.
@@ -18,6 +19,11 @@ const GENERIC_CHATTER: [&str; 4] = [
 
 const CHATTER_CYCLE_S: f64 = 19.0;
 const CHATTER_SHOW_S: f64 = 3.8;
+
+const BUBBLE_BG: Color = Color::new(0.93, 0.90, 0.82, 1.0);
+const BUBBLE_TEXT: Color = Color::new(0.12, 0.09, 0.08, 1.0);
+const TONE_TINT: Color = Color::new(0.10, 0.01, 0.03, 1.0);
+const TONE_GLOW: Color = Color::new(0.55, 0.10, 0.10, 1.0);
 
 pub(super) fn draw_ambient_chatter(floor: Rect, game: &GameState, data: &GameData) {
     for customer in &game.customers {
@@ -44,7 +50,7 @@ pub(super) fn draw_ambient_chatter(floor: Rect, game: &GameState, data: &GameDat
             bubble.y,
             bubble.w,
             bubble.h,
-            Color::new(0.93, 0.90, 0.82, 0.88 * fade),
+            with_alpha(BUBBLE_BG, 0.88 * fade),
         );
         draw_rectangle_lines(
             bubble.x,
@@ -52,21 +58,21 @@ pub(super) fn draw_ambient_chatter(floor: Rect, game: &GameState, data: &GameDat
             bubble.w,
             bubble.h,
             1.0,
-            Color::new(LINE.r, LINE.g, LINE.b, fade),
+            with_alpha(LINE, fade),
         );
         // Little tail pointing at the speaker.
         draw_triangle(
             vec2(bubble.x + 4.0, bubble.y + bubble.h),
             vec2(bubble.x + 14.0, bubble.y + bubble.h),
             vec2(bubble.x - 2.0, bubble.y + bubble.h + 8.0),
-            Color::new(0.93, 0.90, 0.82, 0.88 * fade),
+            with_alpha(BUBBLE_BG, 0.88 * fade),
         );
         draw_ui_text(
             line,
             bubble.x + 9.0,
             bubble.y + 17.0,
             13.0,
-            Color::new(0.12, 0.09, 0.08, fade),
+            with_alpha(BUBBLE_TEXT, fade),
         );
     }
 }
@@ -108,7 +114,7 @@ pub(super) fn draw_tier_tone(floor: Rect, progression: &ProgressionState, data: 
         floor.y,
         floor.w,
         floor.h,
-        Color::new(0.10, 0.01, 0.03, depth),
+        with_alpha(TONE_TINT, depth),
     );
     // A thin blood-warm glow line along the top wall, brighter each tier.
     draw_rectangle(
@@ -116,6 +122,6 @@ pub(super) fn draw_tier_tone(floor: Rect, progression: &ProgressionState, data: 
         floor.y,
         floor.w,
         3.0,
-        Color::new(0.55, 0.10, 0.10, depth * 2.2),
+        with_alpha(TONE_GLOW, depth * 2.2),
     );
 }
