@@ -147,8 +147,10 @@ mod tests {
     #[test]
     #[cfg(not(target_arch = "wasm32"))]
     fn can_save_and_load_round_trip() {
-        let path =
-            std::env::temp_dir().join(format!("feast_frenzy_save_test_{}.json", std::process::id()));
+        let path = std::env::temp_dir().join(format!(
+            "feast_frenzy_save_test_{}.json",
+            std::process::id()
+        ));
         let _ = std::fs::remove_file(&path);
         std::env::set_var("feast_FRENZY_TEST_SAVE_PATH", &path);
 
