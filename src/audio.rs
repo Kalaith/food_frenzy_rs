@@ -1,18 +1,15 @@
-//! Sound effects, loaded via `macroquad_toolkit::audio`. Gameplay code queues
-//! `SfxCue`s on `GameState` (it has no audio access); the app drains the queue
-//! each frame and plays through the bank. All clips live in `assets/sounds/`
-//! and load from the asset pack with a loose-file fallback; a missing clip
-//! degrades to silence rather than failing the boot.
+//! Sound effects, stored and played through `macroquad_toolkit::audio::SoundManager`.
+//! Gameplay code queues `SfxCue`s on `GameState` (it has no audio access); the
+//! app drains the queue each frame and plays through the bank. All clips live
+//! in `assets/sounds/` and load from the asset pack with a loose-file fallback;
+//! a missing clip degrades to silence rather than failing the boot.
 
 use crate::state::SfxCue;
-use macroquad::audio::{play_sound, PlaySoundParams, Sound};
 use macroquad_toolkit::assets::AssetPack;
-use macroquad_toolkit::audio::load_sound_from_pack_or_file;
-use std::collections::HashMap;
+use macroquad_toolkit::audio::SoundManager;
 
 pub struct AudioBank {
-    sounds: HashMap<SfxCue, Sound>,
-    base_volume: f32,
+    sounds: SoundManager<SfxCue>,
     pub enabled: bool,
 }
 
@@ -27,16 +24,17 @@ const CLIPS: [(SfxCue, &str); 7] = [
 ];
 
 impl AudioBank {
-    pub async fn load(asset_pack: Option<&AssetPack>) -> Self {
-        let mut sounds = HashMap::new();
+    pub async fn load(asset_pack: Option<AssetPack>) -> Self {
+        let mut sounds = SoundManager::new();
+        sounds.sfx_volume = 0.8;
+        if let Some(pack) = asset_pack {
+            sounds.add_asset_pack(pack);
+        }
         for (cue, path) in CLIPS {
-            if let Ok(sound) = load_sound_from_pack_or_file(asset_pack, path).await {
-                sounds.insert(cue, sound);
-            }
+            let _ = sounds.load_sound(cue, path).await;
         }
         Self {
             sounds,
-            base_volume: 0.8,
             enabled: true,
         }
     }
@@ -45,21 +43,12 @@ impl AudioBank {
         if !self.enabled {
             return;
         }
-        let Some(sound) = self.sounds.get(&cue) else {
-            return;
-        };
         let multiplier = match cue {
             // The sting is the loudest thing in the mix on purpose.
             SfxCue::LoungeSting => 1.0,
             SfxCue::DayEnd | SfxCue::Event => 0.8,
             _ => 0.6,
         };
-        play_sound(
-            sound,
-            PlaySoundParams {
-                looped: false,
-                volume: self.base_volume * multiplier,
-            },
-        );
+        self.sounds.play_sfx(cue, multiplier);
     }
 }

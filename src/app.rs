@@ -72,10 +72,11 @@ impl App {
     async fn load() -> Self {
         let data = GameData::load();
         let asset_pack = load_asset_pack().await;
-        let audio = AudioBank::load(asset_pack.as_ref()).await;
         let character_textures = load_character_textures(&data, asset_pack.as_ref()).await;
         let interior_sheet = load_interior_sheet(asset_pack.as_ref()).await;
         let title_texture = load_title_texture(asset_pack.as_ref()).await;
+        // Audio loads last: the sound manager takes ownership of the pack.
+        let audio = AudioBank::load(asset_pack).await;
         let game_state = GameState::new(&data);
         let progression_state = ProgressionState::from_game_data(&data);
 
