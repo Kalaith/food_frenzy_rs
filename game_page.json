@@ -1,0 +1,32 @@
+{
+  "title": "Feast Frenzy",
+  "status": { "text": "Playable", "class": "playable" },
+  "canvas_rendering": "pixelated",
+  "canvas": {
+    "width": 1920,
+    "height": 1080
+  },
+  "about": [
+    "Cook named house recipes, satisfy hungry guests, and process lounge patrons for score and rewards in this Rust + Macroquad recreation."
+  ],
+  "controls": [
+    { "key": "Left Click", "desc": "Interact with restaurant UI" },
+    { "key": "1", "desc": "Start Forager Toasts" },
+    { "key": "2", "desc": "Start Hearth Broth" },
+    { "key": "3", "desc": "Start Butcher's Roast" },
+    { "key": "4", "desc": "Start Velvet Sweets" },
+    { "key": "C", "desc": "Clear selected station" },
+    { "key": "P", "desc": "Prestige (if score threshold is met)" }
+  ],
+  "details": [
+    { "label": "Genre", "value": "Restaurant Simulation" },
+    { "label": "Engine", "value": "Macroquad" },
+    { "label": "Platform", "value": "Browser, Windows" }
+  ],
+  "download": {
+    "href": "feast_frenzy_windows.zip",
+    "label": "Windows Build"
+  },
+  "wasm_cache_bust": "date-now",
+  "repository": "https://github.com/Kalaith/food_frenzy_rs"
+}
