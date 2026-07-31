@@ -1,10 +1,10 @@
 # Feast Frenzy
 
 <!--
-Editorial stance (decided 2026-07-08, per game_review.md): this README keeps the
-"wholesome café" framing as deliberate marketing misdirection. The fattening /
-Last Meal Lounge premise is meant to be discovered in play, not spoiled here.
-Keep new copy cozy on the surface; the dark hook lives in the game itself.
+Editorial stance (decided 2026-07-08): this README keeps the "wholesome café"
+framing as deliberate marketing misdirection. The fattening / Last Meal Lounge
+premise is meant to be discovered in play, not spoiled here. Keep new copy cozy
+on the surface; the dark hook lives in the game itself.
 -->
 
 Feast Frenzy is a cozy restaurant management game about running a little café
