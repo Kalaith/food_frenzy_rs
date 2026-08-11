@@ -2,18 +2,26 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-const CUSTOMER_TYPES_JSON: &str = include_str!("../assets/data/customer_types.json");
-const DISH_TYPES_JSON: &str = include_str!("../assets/data/dish_types.json");
-const UPGRADES_JSON: &str = include_str!("../assets/data/upgrades.json");
-const RECIPES_JSON: &str = include_str!("../assets/data/recipes.json");
-const ACHIEVEMENTS_JSON: &str = include_str!("../assets/data/achievements.json");
-const GAME_BALANCE_JSON: &str = include_str!("../assets/data/game_balance.json");
-const TUTORIAL_JSON: &str = include_str!("../assets/data/tutorial.json");
-const SPECIALIZATIONS_JSON: &str = include_str!("../assets/data/specializations.json");
-const TRAIT_BEHAVIORS_JSON: &str = include_str!("../assets/data/trait_behaviors.json");
-const REGULARS_JSON: &str = include_str!("../assets/data/regulars.json");
-const DINING_EVENTS_JSON: &str = include_str!("../assets/data/dining_events.json");
-const PRESTIGE_PERKS_JSON: &str = include_str!("../assets/data/prestige_perks.json");
+const CUSTOMER_TYPES_JSON: &str =
+    macroquad_toolkit::include_json_str!("../assets/data/customer_types.json");
+const DISH_TYPES_JSON: &str =
+    macroquad_toolkit::include_json_str!("../assets/data/dish_types.json");
+const UPGRADES_JSON: &str = macroquad_toolkit::include_json_str!("../assets/data/upgrades.json");
+const RECIPES_JSON: &str = macroquad_toolkit::include_json_str!("../assets/data/recipes.json");
+const ACHIEVEMENTS_JSON: &str =
+    macroquad_toolkit::include_json_str!("../assets/data/achievements.json");
+const GAME_BALANCE_JSON: &str =
+    macroquad_toolkit::include_json_str!("../assets/data/game_balance.json");
+const TUTORIAL_JSON: &str = macroquad_toolkit::include_json_str!("../assets/data/tutorial.json");
+const SPECIALIZATIONS_JSON: &str =
+    macroquad_toolkit::include_json_str!("../assets/data/specializations.json");
+const TRAIT_BEHAVIORS_JSON: &str =
+    macroquad_toolkit::include_json_str!("../assets/data/trait_behaviors.json");
+const REGULARS_JSON: &str = macroquad_toolkit::include_json_str!("../assets/data/regulars.json");
+const DINING_EVENTS_JSON: &str =
+    macroquad_toolkit::include_json_str!("../assets/data/dining_events.json");
+const PRESTIGE_PERKS_JSON: &str =
+    macroquad_toolkit::include_json_str!("../assets/data/prestige_perks.json");
 
 pub const STATION_COLORS: [&str; 4] = ["blue", "green", "yellow", "red"];
 
