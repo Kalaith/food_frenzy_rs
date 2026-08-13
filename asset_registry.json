@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "assets": [
+    "assets/images/feast_frenzy_title.png",
+    "assets/images/interior_sheet.png",
+    "assets/sounds/cash.wav",
+    "assets/sounds/cook_start.wav",
+    "assets/sounds/day_end.wav",
+    "assets/sounds/dish_ready.wav",
+    "assets/sounds/event.wav",
+    "assets/sounds/lounge_sting.wav",
+    "assets/sounds/serve.wav"
+  ]
+}
