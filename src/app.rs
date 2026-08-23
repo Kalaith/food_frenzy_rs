@@ -322,7 +322,7 @@ impl App {
 
     /// Play whatever sound cues gameplay queued this frame.
     fn drain_sfx(&mut self) {
-        let cues: Vec<_> = self.game_state.sfx_queue.drain(..).collect();
+        let cues = std::mem::take(&mut self.game_state.sfx_queue);
         for cue in cues {
             self.audio.play(cue);
         }
