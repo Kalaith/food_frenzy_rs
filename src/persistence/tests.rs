@@ -104,6 +104,7 @@ fn legacy_v1_save_loads_and_migrates() {
 
     let mut save: FoodFrenzySave =
         serde_json::from_str(legacy).expect("legacy v1 save must still deserialize");
+    validate_version(&save).expect("legacy version is accepted before migration or import");
     migrate(&mut save);
 
     assert_eq!(save.version, SAVE_VERSION);
@@ -116,4 +117,9 @@ fn legacy_v1_save_loads_and_migrates() {
     assert!(save.guest_state.guests[0].personality.is_none());
     assert!(save.progression_state.specialization.is_none());
     assert_eq!(save.progression_state.currency, 55);
+    save.version = SAVE_VERSION + 1;
+    assert!(
+        validate_version(&save).is_err(),
+        "future saves must not be relabeled or imported"
+    );
 }

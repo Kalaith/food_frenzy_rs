@@ -7,7 +7,7 @@ use super::types::UiActions;
 use crate::data::{GameData, SpecializationDef};
 use crate::state::{GameState, ProgressionState};
 use macroquad::prelude::*;
-use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
+use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text, wrap_text};
 
 const CARD_W: f32 = 300.0;
 const CARD_H: f32 = 330.0;
@@ -185,28 +185,4 @@ fn describe_effect(key: &str, value: f64) -> String {
         "max_customers_bonus" => format!("{} table(s)", value.abs().round() as i64),
         _ => format!("{percent}% {key}"),
     }
-}
-
-fn wrap_text(text: &str, max_width: f32, font: f32) -> Vec<String> {
-    let mut lines = Vec::new();
-    let mut current = String::new();
-    for word in text.split_whitespace() {
-        let candidate = if current.is_empty() {
-            word.to_string()
-        } else {
-            format!("{current} {word}")
-        };
-        if measure_ui_text(&candidate, None, font as u16, 1.0).width > max_width
-            && !current.is_empty()
-        {
-            lines.push(current);
-            current = word.to_string();
-        } else {
-            current = candidate;
-        }
-    }
-    if !current.is_empty() {
-        lines.push(current);
-    }
-    lines
 }

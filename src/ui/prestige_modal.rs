@@ -6,7 +6,7 @@ use super::types::UiActions;
 use crate::data::GameData;
 use crate::state::GameState;
 use macroquad::prelude::*;
-use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text};
+use macroquad_toolkit::ui::{draw_ui_text, measure_ui_text, wrap_text};
 
 const CARD_W: f32 = 250.0;
 const CARD_H: f32 = 210.0;
@@ -85,28 +85,4 @@ pub(super) fn draw_prestige_modal(game: &GameState, data: &GameData, ui: &mut Ui
         );
         ui.prestige_perk_buttons.insert(perk.id.clone(), card);
     }
-}
-
-fn wrap_text(text: &str, max_width: f32, font: f32) -> Vec<String> {
-    let mut lines = Vec::new();
-    let mut current = String::new();
-    for word in text.split_whitespace() {
-        let candidate = if current.is_empty() {
-            word.to_string()
-        } else {
-            format!("{current} {word}")
-        };
-        if measure_ui_text(&candidate, None, font as u16, 1.0).width > max_width
-            && !current.is_empty()
-        {
-            lines.push(current);
-            current = word.to_string();
-        } else {
-            current = candidate;
-        }
-    }
-    if !current.is_empty() {
-        lines.push(current);
-    }
-    lines
 }

@@ -1,4 +1,4 @@
-use serde::de::DeserializeOwned;
+use macroquad_toolkit::data_loader::{load_json_file_with_fallback_sync, JsonFallbackPolicy};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -522,18 +522,78 @@ impl Default for RegularsData {
 impl GameData {
     pub fn load() -> Self {
         Self {
-            customer_types: parse_or_fallback(CUSTOMER_TYPES_JSON, "[]"),
-            dish_types: parse_or_fallback(DISH_TYPES_JSON, "[]"),
-            upgrades: parse_or_fallback(UPGRADES_JSON, "[]"),
-            recipes: parse_or_fallback(RECIPES_JSON, "[]"),
-            achievements: parse_or_fallback(ACHIEVEMENTS_JSON, "[]"),
-            tutorial_steps: parse_or_fallback(TUTORIAL_JSON, "[]"),
-            specializations: parse_or_fallback(SPECIALIZATIONS_JSON, "[]"),
-            trait_behaviors: parse_or_fallback(TRAIT_BEHAVIORS_JSON, "[]"),
-            regulars: parse_or_fallback(REGULARS_JSON, "{}"),
-            dining_events: parse_or_fallback(DINING_EVENTS_JSON, "[]"),
-            prestige_perks: parse_or_fallback(PRESTIGE_PERKS_JSON, "[]"),
-            balance: parse_or_fallback(GAME_BALANCE_JSON, "{}"),
+            customer_types: load_json_file_with_fallback_sync(
+                "assets/data/customer_types.json",
+                CUSTOMER_TYPES_JSON,
+                JsonFallbackPolicy::ReadOrParseError,
+            )
+            .unwrap_or_default(),
+            dish_types: load_json_file_with_fallback_sync(
+                "assets/data/dish_types.json",
+                DISH_TYPES_JSON,
+                JsonFallbackPolicy::ReadOrParseError,
+            )
+            .unwrap_or_default(),
+            upgrades: load_json_file_with_fallback_sync(
+                "assets/data/upgrades.json",
+                UPGRADES_JSON,
+                JsonFallbackPolicy::ReadOrParseError,
+            )
+            .unwrap_or_default(),
+            recipes: load_json_file_with_fallback_sync(
+                "assets/data/recipes.json",
+                RECIPES_JSON,
+                JsonFallbackPolicy::ReadOrParseError,
+            )
+            .unwrap_or_default(),
+            achievements: load_json_file_with_fallback_sync(
+                "assets/data/achievements.json",
+                ACHIEVEMENTS_JSON,
+                JsonFallbackPolicy::ReadOrParseError,
+            )
+            .unwrap_or_default(),
+            tutorial_steps: load_json_file_with_fallback_sync(
+                "assets/data/tutorial.json",
+                TUTORIAL_JSON,
+                JsonFallbackPolicy::ReadOrParseError,
+            )
+            .unwrap_or_default(),
+            specializations: load_json_file_with_fallback_sync(
+                "assets/data/specializations.json",
+                SPECIALIZATIONS_JSON,
+                JsonFallbackPolicy::ReadOrParseError,
+            )
+            .unwrap_or_default(),
+            trait_behaviors: load_json_file_with_fallback_sync(
+                "assets/data/trait_behaviors.json",
+                TRAIT_BEHAVIORS_JSON,
+                JsonFallbackPolicy::ReadOrParseError,
+            )
+            .unwrap_or_default(),
+            regulars: load_json_file_with_fallback_sync(
+                "assets/data/regulars.json",
+                REGULARS_JSON,
+                JsonFallbackPolicy::ReadOrParseError,
+            )
+            .unwrap_or_default(),
+            dining_events: load_json_file_with_fallback_sync(
+                "assets/data/dining_events.json",
+                DINING_EVENTS_JSON,
+                JsonFallbackPolicy::ReadOrParseError,
+            )
+            .unwrap_or_default(),
+            prestige_perks: load_json_file_with_fallback_sync(
+                "assets/data/prestige_perks.json",
+                PRESTIGE_PERKS_JSON,
+                JsonFallbackPolicy::ReadOrParseError,
+            )
+            .unwrap_or_default(),
+            balance: load_json_file_with_fallback_sync(
+                "assets/data/game_balance.json",
+                GAME_BALANCE_JSON,
+                JsonFallbackPolicy::ReadOrParseError,
+            )
+            .unwrap_or_default(),
         }
     }
 
@@ -571,32 +631,6 @@ impl GameData {
     }
 }
 
-fn parse_or_fallback<T>(embedded: &str, fallback: &str) -> T
-where
-    T: DeserializeOwned + Default,
-{
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        let path = data_file_path("game_data", embedded);
-        if let Ok(raw) = std::fs::read_to_string(path) {
-            if let Ok(value) = serde_json::from_str::<T>(&raw) {
-                return value;
-            }
-        }
-    }
-
-    serde_json::from_str::<T>(embedded)
-        .unwrap_or_else(|_| serde_json::from_str::<T>(fallback).unwrap_or_else(|_| T::default()))
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn data_file_path(filename: &str, embedded: &str) -> String {
-    let _ = embedded;
-    format!("assets/data/{filename}.json")
-}
-
-// `parse_or_fallback` deliberately degrades at runtime; these tests are the
-// loud counterpart so a broken or drifted JSON asset fails CI instead of
-// silently shipping empty content.
+// Shipped content tests keep lenient runtime fallbacks from hiding broken assets.
 #[cfg(test)]
 mod tests;

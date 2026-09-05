@@ -55,7 +55,8 @@ pub fn load_game() -> Result<Option<FoodFrenzySave>, String> {
         return Ok(None);
     }
 
-    let mut save = load_json::<FoodFrenzySave>()?;
+    let mut save = load_snapshot()?;
+    validate_version(&save)?;
     migrate(&mut save);
     Ok(Some(save))
 }
@@ -97,11 +98,16 @@ fn save_json<T: Serialize>(value: &T) -> Result<(), String> {
     }
 }
 
-fn load_json<T: serde::de::DeserializeOwned>() -> Result<T, String> {
+fn load_snapshot() -> Result<FoodFrenzySave, String> {
     #[cfg(target_arch = "wasm32")]
     {
-        macroquad_toolkit::persistence::load_json_key(GAME_NAME, SAVE_KEY)
-            .or_else(|_| load_legacy_browser_save())
+        macroquad_toolkit::persistence::load_json_key_with_legacy(
+            GAME_NAME,
+            SAVE_KEY,
+            &[SAVE_KEY],
+            validate_version,
+        )
+        .map(|loaded| loaded.value)
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -112,14 +118,14 @@ fn load_json<T: serde::de::DeserializeOwned>() -> Result<T, String> {
     }
 }
 
-#[cfg(target_arch = "wasm32")]
-fn load_legacy_browser_save<T: serde::de::DeserializeOwned>() -> Result<T, String> {
-    let serialized = macroquad_toolkit::wasm_storage::storage_get(SAVE_KEY)
-        .ok_or_else(|| format!("No browser save data found for '{SAVE_KEY}'."))?;
-    let save = serde_json::from_str(&serialized)
-        .map_err(|error| format!("Failed to parse save data: {error}"))?;
-    let _ = macroquad_toolkit::persistence::save_string_key(GAME_NAME, SAVE_KEY, &serialized);
-    Ok(save)
+fn validate_version(save: &FoodFrenzySave) -> Result<(), String> {
+    if save.version > SAVE_VERSION {
+        return Err(format!(
+            "Save version {} is newer than supported version {SAVE_VERSION}",
+            save.version
+        ));
+    }
+    Ok(())
 }
 
 fn save_exists() -> bool {

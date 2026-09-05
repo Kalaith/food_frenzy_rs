@@ -1,6 +1,6 @@
 //! Data-integrity tests: strict parses of every embedded JSON asset plus
 //! cross-reference checks, split out of `data.rs` to respect the file-size
-//! limit. `parse_or_fallback` degrades silently at runtime; these are the
+//! limit. Toolkit loading degrades to defaults at runtime; these are the
 //! loud counterpart so broken content fails CI instead of shipping empty.
 
 use super::*;
